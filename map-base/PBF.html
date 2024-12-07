@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>底图加载-WMTS地图</title>
+    <link rel="stylesheet" href="/public/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="/public/libs/cme2d.js"></script>
+    <script type="text/javascript">
+      const { Map, View, source, layer, format, style } = window.CME2D
+
+      let mapObj
+      function initMap(mapEl) {
+        const map = new Map({
+          target: mapEl, //挂载实例
+          layers: [],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      function addLayer(map) {
+        const styleUrl =
+          'http://10.40.16.46/api/v1/ae15768e480a40bf86ddc3dda23d935a/style'
+
+        // 创建矢量瓦片源
+        const vectorTileSource = new source.VectorTile({
+          declutter: true,
+          projection: map.getView().getProjection(),
+          format: new format.MVT(), // 设置瓦片格式为 MVTf"
+        })
+
+        // 创建矢量瓦片图层
+        const curLayer = new layer.VectorTile({
+          source: vectorTileSource,
+        })
+
+        // 加载 Mapbox 样式
+        fetch(styleUrl)
+          .then((response) => response.json())
+          .then((glStyle) => {
+            applyStyle(curLayer, glStyle.data)
+          })
+
+        map.addLayer(curLayer)
+      }
+
+      window.onload = function () {
+        mapObj = initMap('map')
+        addLayer(mapObj)
+      }
+    </script>
+  </body>
+</html>

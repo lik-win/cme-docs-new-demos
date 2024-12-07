@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>矢量图形-文本框</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <style>
+      .ol-popup {
+        position: absolute;
+        background-color: white;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+        padding: 15px;
+        border-radius: 10px;
+        border: 1px solid #cccccc;
+        bottom: 12px;
+        left: -50px;
+        min-width: 280px;
+      }
+      .ol-popup:after,
+      .ol-popup:before {
+        top: 100%;
+        border: solid transparent;
+        content: ' ';
+        height: 0;
+        width: 0;
+        position: absolute;
+        pointer-events: none;
+      }
+      .ol-popup:after {
+        border-top-color: white;
+        border-width: 10px;
+        left: 48px;
+        margin-left: -10px;
+      }
+      .ol-popup:before {
+        border-top-color: #cccccc;
+        border-width: 11px;
+        left: 48px;
+        margin-left: -11px;
+      }
+      .ol-popup-closer {
+        text-decoration: none;
+        position: absolute;
+        top: 2px;
+        right: 8px;
+      }
+      .ol-popup-closer:after {
+        content: '✖';
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <div id="popup" class="ol-popup">
+      <a href="#" id="popup-closer" class="ol-popup-closer"></a>
+      <div id="popup-content"></div>
+    </div>
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript">
+      const { Map, View, Overlay, source, layer } = window.CME2D
+
+      // 定义overlay元素
+      const container = document.getElementById('popup')
+      const content = document.getElementById('popup-content')
+      const closer = document.getElementById('popup-closer')
+
+      // 创建overlay
+      const overlay = new Overlay({
+        element: container,
+        autoPan: {
+          animation: {
+            duration: 250,
+          },
+        },
+      })
+      // 关闭弹窗事件
+      closer.onclick = function () {
+        overlay.setPosition(undefined)
+        closer.blur()
+        return false
+      }
+      // 修改弹窗
+      function changeOverlay(content, overlay, coor) {
+        content.innerHTML =
+          '<p>你点击了的坐标:</p><code>' + coor.join(', ') + '</code>'
+        overlay.setPosition(coor)
+      }
+      window.onload = function () {
+        const mapObj = new Map({
+          target: 'map', //挂载实例
+          layers: [
+            new layer.Tile({
+              preload: Infinity, //开启预加载模式
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png ', // 内网地址
+                // url: 'http://111.205.114.224:8080/windy/{z}/{x}/{y}.png'   // 外网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            maxZoom: 10,
+            minZoom: 4,
+            wrapX: true,
+          }), //地图设置
+          overlays: [overlay],
+          controls: [], //取消地图操作
+        })
+        // 添加默认弹窗
+        changeOverlay(content, overlay, [106, 35])
+        // 地图单击事件
+        mapObj.on('singleclick', function (evt) {
+          const coor = evt.coordinate
+          changeOverlay(content, overlay, coor)
+        })
+      }
+    </script>
+  </body>
+</html>

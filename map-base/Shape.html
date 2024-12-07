@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>底图加载-Shape地图</title>
+    <link rel="stylesheet" href="/public/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="/public/libs/cme2d.js"></script>
+    <script type="text/javascript">
+      const { Map, View, source, layer, format, style } = window.CME2D
+
+      let mapObj
+      function initMap(mapEl) {
+        const map = new Map({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              preload: Infinity, //开启预加载模式
+              source: new source.XYZ({
+                url: 'http://10.1.65.144:81/DataServer?T=vec_w&x={x}&y={y}&l={z}', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      function addLayer(map) {
+        let params = {
+          layerURL: 'http://10.1.64.146/cme/version_file/china.zip',
+          proj: map.getView().getProjection().getCode(),
+        }
+        let shpLayer = new cme_shpLayer()
+        shpLayer._render(params).then((bool) => {
+          map.addLayer(shpLayer)
+        })
+      }
+
+      window.onload = function () {
+        mapObj = initMap('map')
+        addLayer(mapObj)
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>地图事件-鼠标悬浮事件</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <style>
+      .info {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        padding: 6px 10px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <div class="info">鼠标当前位置为：<span id="position"></span></div>
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript">
+      const { Map, View, source, layer } = window.CME2D
+
+      window.onload = function () {
+        const mapObj = new Map({
+          target: 'map', //挂载实例
+          layers: [
+            new layer.Tile({
+              preload: Infinity, //开启预加载模式
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png ', // 内网地址
+                // url: 'http://111.205.114.224:8080/windy/{z}/{x}/{y}.png'   // 外网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            maxZoom: 10,
+            minZoom: 4,
+            wrapX: true,
+          }), //地图设置
+          controls: [],
+        })
+        mapObj.on('pointermove', function (env) {
+          // 获取鼠标当前位置
+          document.getElementById('position').innerHTML = env.coordinate
+        })
+      }
+    </script>
+  </body>
+</html>

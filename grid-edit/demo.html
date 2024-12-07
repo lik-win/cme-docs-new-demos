@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      html,
+      body,
+      #app {
+        height: 100%;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+        background-color: #ffffff;
+      }
+    </style>
+    <script type="text/javascript" src="/public/libs/vue.global.js"></script>
+  </head>
+  <body>
+    <div id="app">
+      <MyComponent></MyComponent>
+    </div>
+  </body>
+  <script type="module">
+    // import cogTif from '/src/demos/grid-edit/windEdit/cogTif.vue'
+    const { createApp, defineComponent } = window.Vue
+    const MyComponent = defineComponent({
+      template: `<div>Hello, World!</div>`,
+    })
+    createApp(MyComponent).mount('#app')
+  </script>
+</html>

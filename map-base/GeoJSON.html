@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>底图加载-GeoJSON地图</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript">
+      const { Map, View, source, layer, format } = window.CME2D
+
+      let mapObj
+      function initMap(mapEl) {
+        const map = new Map({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              preload: Infinity, //开启预加载模式
+              source: new source.XYZ({
+                url: 'http://10.1.65.144:81/DataServer?T=vec_w&x={x}&y={y}&l={z}', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      // 添加genjson
+      function addLayer(map) {
+        let geojson = {
+          type: 'FeatureCollection',
+          features: [
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: [120.4074, 36.9042], // 北京的经纬度
+              },
+              properties: {
+                name: '北京',
+              },
+            },
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: [
+                  [110.4074, 39.9042], // 北京的经纬度
+                  [101.4737, 31.2304], // 上海的经纬度
+                ],
+              },
+              properties: {
+                name: '北京到上海的线路',
+              },
+            },
+            {
+              type: 'Feature',
+              geometry: {
+                type: 'Polygon',
+                coordinates: [
+                  [
+                    [116.4074, 39.9042], // 北京的经纬度
+                    [121.4737, 31.2304], // 上海的经纬度
+                    [113.2644, 23.1291], // 广州的经纬度
+                    [116.4074, 39.9042], // 北京的经纬度 (闭合)
+                  ],
+                ],
+              },
+              properties: {
+                name: '中国东部区域',
+              },
+            },
+          ],
+        }
+        const vectorSource = new source.Vector({
+          features: new format.GeoJSON().readFeatures(geojson),
+        })
+        const vectorLayer = new layer.Vector({
+          source: vectorSource,
+        })
+        map.addLayer(vectorLayer)
+      }
+
+      window.onload = function () {
+        mapObj = initMap('map')
+        addLayer(mapObj)
+      }
+    </script>
+  </body>
+</html>

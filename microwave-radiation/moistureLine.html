@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>新型观测资料-微波辐射计-水汽廓线</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <link rel="stylesheet" href="/microwave-radiation.css" />
+  </head>
+
+  <body>
+    <div class="weather">
+      <div class="content">
+        <div class="chart_container">
+          <div class="mychart" id="myChart"></div>
+        </div>
+      </div>
+    </div>
+    <script
+      type="text/javascript"
+      src="https://unpkg.com/echarts/dist/echarts.min.js"
+    ></script>
+    <script type="module">
+      import temperatureData from '/data/microwaveRadiation/echartData.js'
+      let tmepChart = null
+
+      let yData = temperatureData.data.stationInfo.heightLayers
+
+      let xData = temperatureData.data.list[0].moisture
+
+      let seriesData = xData
+      //   xData.reverse().map((item, index) => {
+      //   return [item, yData[index]]
+      // })
+      let options
+
+      function getEchart() {
+        options = {
+          title: {
+            text: '水汽廓线',
+          },
+          backgroundColor: '#fff',
+          legend: {
+            data: ['水汽廓线'],
+          },
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+              type: 'cross',
+              label: {
+                show: true,
+                backgroundColor: '#dce4e9',
+                color: '#445566',
+                borderColor: 'rgba(0,0,0,0)',
+                shadowColor: 'rgba(0,0,0,0)',
+                shadowOffsetY: 0,
+                // formatter: (params) => {
+                //   if (params.axisDimension === 'y') {
+                //     return params.value.toFixed(2);
+                //   } else {
+                //     let ite = xData.find((v) => v.value === params.value);
+                //     return ite.name;
+                //   }
+                // },
+              },
+              textStyle: {
+                color: '#fff',
+              },
+            },
+            // formatter: (params) => {
+            //   let ite = $filterList.find((v) => v.value === params[0].data[0]);
+            //   return ite && `${ite.name}：${params[0].data[1]}`;
+            // },
+            lineStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 0,
+                colorStops: [
+                  {
+                    offet: 0,
+                    color: 'red',
+                  },
+                  {
+                    offet: 0.5,
+                    color: 'blue',
+                  },
+                  {
+                    offet: 1,
+                    color: 'white',
+                  },
+                ],
+              },
+            },
+            padding: [5, 10],
+            extraCssText: 'box-shadow: 1px 0 2px 0 rgba(163, 163, 163, .5)',
+          },
+          xAxis: {
+            // name: '水汽廓线',
+            type: 'value',
+            nameTextStyle: {
+              color: '#212121',
+              fontFamily: 'SourceHanSansCN',
+              fontSize: '13',
+            },
+            axisLabel: {
+              color: '#212121',
+              fontSize: 10,
+
+              // formatter: (val) => {
+              //   console.log(val, 'val')
+              // },
+            },
+            interval: 2,
+            // max: 300,
+            // min: 220,
+            axisLine: {
+              show: true,
+              lineStyle: {
+                type: 'dashed',
+                color: '#999',
+              },
+            },
+            splitLine: {
+              show: true,
+            },
+            axisTick: {
+              show: false,
+            },
+          },
+          yAxis: [
+            {
+              name: '高度（km）',
+              nameTextStyle: {
+                color: '#212121',
+                fontFamily: 'SourceHanSansCN',
+                fontSize: '13',
+              },
+              type: 'category',
+              data: yData,
+              axisTick: {
+                show: true,
+                lineStyle: {
+                  color: '#707070',
+                },
+              },
+              axisLine: {
+                show: true,
+                lineStyle: {
+                  color: '#D9D9D9',
+                },
+              },
+
+              axisLabel: {
+                show: true,
+
+                textStyle: {
+                  color: '#212121',
+                  fontFamily: 'SourceHanSansCN',
+                  fontSize: '13',
+                },
+                formatter: (val) => {
+                  return val
+                  // let ite = $filterList.find((e) => e.value == val);
+                  // return ite && ite.name;
+                },
+              },
+              splitLine: {
+                show: false,
+                lineStyle: {
+                  type: 'dashed',
+                  color: '#999',
+                },
+              },
+            },
+            {
+              type: 'category',
+              show: false,
+              inverse: true,
+              data: yData,
+            },
+          ],
+          series: [
+            {
+              name: '水汽',
+              type: 'line',
+              data: seriesData,
+              symbolSize: 6,
+              symbol: 'circle',
+              smooth: true,
+              lineStyle: {
+                color: '#fe9a8b',
+              },
+              itemStyle: {
+                normal: {
+                  color: '#fe9a8b',
+                  borderColor: '#fe9a8b',
+                },
+              },
+              emphasis: {
+                itemStyle: {
+                  color: {
+                    type: 'radial',
+                    x: 0.5,
+                    y: 0.5,
+                    r: 0.5,
+                    colorStops: [
+                      {
+                        offset: 0,
+                        color: '#fe9a8b',
+                      },
+                      {
+                        offset: 0.4,
+                        color: '#fe9a8b',
+                      },
+                      {
+                        offset: 0.5,
+                        color: '#fff',
+                      },
+                      {
+                        offset: 0.7,
+                        color: '#fff',
+                      },
+                      {
+                        offset: 0.8,
+                        color: '#fff',
+                      },
+                      {
+                        offset: 1,
+                        color: '#fff',
+                      },
+                    ],
+                  },
+                  borderColor: '#fe9a8b',
+                  borderWidth: 4,
+                },
+              },
+            },
+          ],
+        }
+        tmepChart.setOption(options)
+        tmepChart.resize()
+      }
+      const chatResrt = () => {
+        tmepChart.resize()
+      }
+      const initChart = () => {
+        tmepChart = echarts.init(document.getElementById('myChart'))
+        window.addEventListener('resize', () => {
+          chatResrt()
+        })
+      }
+      window.onload = () => {
+        initChart()
+        getEchart()
+      }
+    </script>
+  </body>
+</html>

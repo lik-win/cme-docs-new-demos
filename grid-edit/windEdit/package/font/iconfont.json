@@ -1,0 +1,163 @@
+{
+  "id": "4575782",
+  "name": "风向杆",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "40622531",
+      "name": "正_1级",
+      "font_class": "zheng_1ji",
+      "unicode": "e794",
+      "unicode_decimal": 59284
+    },
+    {
+      "icon_id": "40622532",
+      "name": "正_2级",
+      "font_class": "zheng_2ji",
+      "unicode": "e795",
+      "unicode_decimal": 59285
+    },
+    {
+      "icon_id": "40622530",
+      "name": "正_0级",
+      "font_class": "zheng_0ji",
+      "unicode": "e796",
+      "unicode_decimal": 59286
+    },
+    {
+      "icon_id": "40622549",
+      "name": "正_21级",
+      "font_class": "zheng_21ji",
+      "unicode": "e784",
+      "unicode_decimal": 59268
+    },
+    {
+      "icon_id": "40622545",
+      "name": "正_13级",
+      "font_class": "zheng_13ji",
+      "unicode": "e783",
+      "unicode_decimal": 59267
+    },
+    {
+      "icon_id": "40622551",
+      "name": "正_18级",
+      "font_class": "zheng_18ji",
+      "unicode": "e785",
+      "unicode_decimal": 59269
+    },
+    {
+      "icon_id": "40622548",
+      "name": "正_20级",
+      "font_class": "zheng_20ji",
+      "unicode": "e786",
+      "unicode_decimal": 59270
+    },
+    {
+      "icon_id": "40622550",
+      "name": "正_16级",
+      "font_class": "zheng_16ji",
+      "unicode": "e787",
+      "unicode_decimal": 59271
+    },
+    {
+      "icon_id": "40622547",
+      "name": "正_19级",
+      "font_class": "zheng_19ji",
+      "unicode": "e788",
+      "unicode_decimal": 59272
+    },
+    {
+      "icon_id": "40622546",
+      "name": "正_17级",
+      "font_class": "zheng_17ji",
+      "unicode": "e789",
+      "unicode_decimal": 59273
+    },
+    {
+      "icon_id": "40622544",
+      "name": "正_15级",
+      "font_class": "zheng_15ji",
+      "unicode": "e78a",
+      "unicode_decimal": 59274
+    },
+    {
+      "icon_id": "40622543",
+      "name": "正_12级",
+      "font_class": "zheng_12ji",
+      "unicode": "e78b",
+      "unicode_decimal": 59275
+    },
+    {
+      "icon_id": "40622542",
+      "name": "正_14级",
+      "font_class": "zheng_14ji",
+      "unicode": "e78c",
+      "unicode_decimal": 59276
+    },
+    {
+      "icon_id": "40622540",
+      "name": "正_8级",
+      "font_class": "zheng_8ji",
+      "unicode": "e782",
+      "unicode_decimal": 59266
+    },
+    {
+      "icon_id": "40622541",
+      "name": "正_11级",
+      "font_class": "zheng_11ji",
+      "unicode": "e78d",
+      "unicode_decimal": 59277
+    },
+    {
+      "icon_id": "40622538",
+      "name": "正_10级",
+      "font_class": "zheng_10ji",
+      "unicode": "e78e",
+      "unicode_decimal": 59278
+    },
+    {
+      "icon_id": "40622539",
+      "name": "正_9级",
+      "font_class": "zheng_9ji",
+      "unicode": "e78f",
+      "unicode_decimal": 59279
+    },
+    {
+      "icon_id": "40622537",
+      "name": "正_7级",
+      "font_class": "zheng_7ji",
+      "unicode": "e790",
+      "unicode_decimal": 59280
+    },
+    {
+      "icon_id": "40622536",
+      "name": "正_6级",
+      "font_class": "zheng_6ji",
+      "unicode": "e781",
+      "unicode_decimal": 59265
+    },
+    {
+      "icon_id": "40622533",
+      "name": "正_4级",
+      "font_class": "zheng_4ji",
+      "unicode": "e791",
+      "unicode_decimal": 59281
+    },
+    {
+      "icon_id": "40622535",
+      "name": "正_5级",
+      "font_class": "zheng_5ji",
+      "unicode": "e792",
+      "unicode_decimal": 59282
+    },
+    {
+      "icon_id": "40622534",
+      "name": "正_3级",
+      "font_class": "zheng_3ji",
+      "unicode": "e793",
+      "unicode_decimal": 59283
+    }
+  ]
+}
