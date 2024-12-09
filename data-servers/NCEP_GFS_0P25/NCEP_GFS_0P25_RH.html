@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据服务-NCEP全球模式(0.25°)-相对湿度</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const apiInfo = {
+        url: '/cmes-base-fileservice/file/v1/manage/mode/getCogTiff',
+        args: {
+          dataCode: {
+            value: 'NCEP_GFS_0P25_FOR_GLB',
+            type: 'string',
+            required: true,
+            desc: '资料编码',
+          },
+          element: {
+            value: 'RH',
+            type: 'string',
+            required: true,
+            desc: '要素',
+          },
+          levelType: {
+            value: 100,
+            type: 'number',
+            required: true,
+            desc: '等级类型',
+          },
+          level: {
+            value: 85000,
+            type: 'number',
+            required: true,
+            desc: '等级',
+          },
+          startTime: {
+            value: '20241205000000',
+            type: 'string',
+            required: true,
+            desc: '开始时间',
+          },
+          forecastTime: {
+            value: 237,
+            type: 'number',
+            required: true,
+            desc: '预报时间',
+          },
+        },
+      }
+
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers, style } = window.CMECore
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      function onRun(params) {
+        // 请求新数据之前删除旧图层
+        if (tiffLayers?.cogLayer) {
+          mapObj.removeLayer(tiffLayers.cogLayer)
+        }
+        if (tiffLayers?.gridLayer) {
+          mapObj.removeLayer(tiffLayers.gridLayer)
+        }
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTiff?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
+              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+              let tifUrl =
+                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+              singKleLayer(mapObj, tifUrl)
+            }
+          })
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          const params = {
+            dataCode: 'NCEP_GFS_0P25_FOR_GLB',
+            element: 'RH',
+            levelType: 100,
+            level: 85000,
+            startTime: '20241205000000',
+            forecastTime: 237,
+          }
+          onRun(params)
+        })
+      }
+      function singKleLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getsingleKConfig()
+        // 获取文本配置参数
+        const paramstext = getTextCogtig()
+        // 获取箭头配置参数
+        //  const paramsArrow=getArrowCogtig();
+        tiffLayers = new blendLayers(map, {
+          url: url,
+          metadata: {
+            scale: 1, // 缩放比例
+            offset: 0, //偏移量
+          },
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer)
+          })
+          // 绘制网格值
+          tiffLayers.addTextLayer(paramstext).then((layer) => {
+            let option = {
+              gridLayer: {
+                range: {
+                  min: 10,
+                  max: 20,
+                },
+              },
+            }
+            map.addLayer(layer)
+          })
+        })
+      }
+
+      function getsingleKConfig() {
+        let params = {
+          layerName: 'cogtifLayer',
+          opacity: 0.8,
+          interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
+          zIndex: 14,
+          colors: [
+            [0, [173, 85, 56, 1]],
+            [30, [173, 110, 56, 1]],
+            [40, [173, 146, 56, 1]],
+            [50, [105, 173, 56, 1]],
+            [60, [56, 173, 121, 1]],
+            [70, [56, 174, 173, 1]],
+            [75, [56, 160, 173, 1]],
+            [80, [56, 157, 173, 1]],
+            [83, [56, 148, 173, 1]],
+            [87, [56, 135, 173, 1]],
+            [90, [56, 132, 173, 1]],
+            [93, [56, 123, 173, 1]],
+            [97, [56, 98, 157, 1]],
+            [100, [56, 70, 114, 1]],
+          ],
+        }
+        return params
+      }
+
+      function getTextCogtig() {
+        let params = {
+          layerName: 'textLayer',
+          type: 'grid',
+          layerName: 'textLayer', //文本图层的图层名字,默认是栅格数据id名称加上_Text
+          precision: 1, //格网数据显示的小数点的精度
+          opacity: 1, //透明度
+          zIndex: 200, //图层层级
+          distanceArrow: 80, //距离
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: '18px Calibri,sans-serif',
+                  fill: {
+                    Fill: {
+                      color: '#000000',
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: '#ffffff',
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }
+
+        return params
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>

@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据服务-CMA区域模式(3KM)-10米风</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const apiInfo = {
+        url: '/cmes-base-fileservice/file/v1/manage/mode/getCogTiff',
+        args: {
+          dataCode: {
+            value: 'CMA_MESO_FOR_CHN',
+            type: 'string',
+            required: true,
+            desc: '资料编码',
+          },
+          element: {
+            value: 'WIN',
+            type: 'string',
+            required: true,
+            desc: '要素',
+          },
+          levelType: {
+            value: 103,
+            type: 'number',
+            required: true,
+            desc: '等级类型',
+          },
+          level: {
+            value: 10,
+            type: 'number',
+            required: true,
+            desc: '等级',
+          },
+          startTime: {
+            value: '20241205120000',
+            type: 'string',
+            required: true,
+            desc: '开始时间',
+          },
+          forecastTime: {
+            value: 72,
+            type: 'number',
+            required: true,
+            desc: '预报时间',
+          },
+        },
+      }
+
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers, style } = window.CMECore
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      function onRun(params) {
+        // 请求新数据之前删除旧图层
+        if (tiffLayers?.cogLayer) {
+          mapObj.removeLayer(tiffLayers.cogLayer)
+        }
+        if (tiffLayers?.gridLayer) {
+          mapObj.removeLayer(tiffLayers.gridLayer)
+        }
+        if (tiffLayers?.arrowLayer) {
+          mapObj.removeLayer(tiffLayers.arrowLayer)
+        }
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTiff?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
+              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+              let tifUrl =
+                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+              singKleLayer(mapObj, tifUrl)
+            }
+          })
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          const params = {
+            dataCode: 'CMA_MESO_FOR_CHN',
+            element: 'WIN',
+            levelType: 103,
+            level: 10,
+            startTime: '20241205120000',
+            forecastTime: 72,
+          }
+          onRun(params)
+        })
+      }
+      function singKleLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getMultiConfig()
+        // 获取文本配置参数
+        const paramstext = getTextConfig()
+        // 获取箭头配置参数
+        const paramsArrow = getArrowCogtig()
+        tiffLayers = new blendLayers(map, {
+          url: url,
+          metadata: {
+            scale: 1, // 缩放比例
+            offset: 0, //偏移量
+          },
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer)
+          })
+          // 绘制网格值
+          tiffLayers.addTextLayer(paramstext).then((layer) => {
+            let option = {
+              gridLayer: {
+                range: {
+                  min: 10,
+                  max: 20,
+                },
+              },
+            }
+            map.addLayer(layer)
+          })
+        })
+        //绘制风向杆
+        tiffLayers.addArrowLayer(paramsArrow).then((layer) => {
+          map.addLayer(layer)
+        })
+      }
+
+      function getMultiConfig() {
+        let params = {
+          layerName: 'cogtifLayer',
+          opacity: 1.0,
+          interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
+
+          zIndex: 14,
+          // getColor(),
+          colors: [
+            [0, [82, 71, 141, 1]],
+            [1, [85, 78, 177, 1]],
+            [2, [80, 87, 184, 1]],
+            [4, [67, 105, 196, 1]],
+            [6, [64, 160, 180, 1]],
+            [8, [78, 193, 103, 1]],
+            [10, [104, 209, 79, 1]],
+            [12, [157, 221, 68, 1]],
+            [16, [195, 226, 51, 1]],
+            [18, [247, 122, 9, 1]],
+            [20, [251, 60, 60, 1]],
+            [24, [0, 0, 0, 1]],
+            [30, [217, 66, 114, 1]],
+            [36, [147, 23, 78, 1]],
+            [42, [43, 0, 1, 1]],
+            [24, [194, 3, 0, 1]],
+            [30, [217, 66, 114, 1]],
+            [36, [147, 23, 78, 1]],
+            [42, [43, 0, 1, 1]],
+          ],
+        }
+        return params
+      }
+
+      function getTextConfig() {
+        let params = {
+          layerName: 'textLayer',
+          type: 'grid',
+          layerName: 'textLayer', //文本图层的图层名字,默认是栅格数据id名称加上_Text
+          precision: 1, //格网数据显示的小数点的精度
+          opacity: 1, //透明度
+          zIndex: 200, //图层层级
+          distanceArrow: 80, //距离
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: '18px Calibri,sans-serif',
+                  fill: {
+                    Fill: {
+                      color: '#000000',
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: '#ffffff',
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }
+
+        return params
+      }
+      function getArrowCogtig() {
+        let params = {
+          layerName: 'arrowLayer',
+          // arrow: {
+          // distanceArrow: 80,//默认是间隔80像素绘制
+          // type: 'wind', //  arrow 表示箭头  wind 表示风向杆
+          windType: 'arrow', //  arrow 表示箭头  wind 表示风向杆
+          zIndex: 1002,
+          type: 'arrow', //
+          style1: {
+            Style: {
+              image: {
+                cme_style_FontSymbol: {
+                  radius: 18,
+                  displacement: [0, 0],
+                  color: '#000000',
+                  //  "fill": {
+                  //   "Fill": {
+                  //     "color": "rgba(255,0,0,1)"
+                  //   }
+                  // },
+                  // "stroke": {
+                  //   "Stroke": {
+                  //     "color": "rgba(0,255,0,1)",
+                  //     "width": 1
+                  //   }
+                  //  }
+                },
+              },
+            },
+          },
+          rule: {
+            color: [
+              //风力等级对应的颜色
+              [0, 'rgba(100,100,0,1)'],
+              [2, 'rgba(200,200,0,1)'],
+              [4, 'rgba(255,255,0,1)'],
+              [6, 'rgba(0,255,255,1)'],
+              [8, 'rgba(255,0,255,1)'],
+              [10, 'rgba(0,0,255,1)'],
+              [25, 'rgba(0,0,0,1)'],
+              //   // [18, 'rgba(0,255,0,1)'],
+              //   // [26, 'rgba(0,255,0,1)'],
+              //   // [28, 'rgba(0,255,0,1)'],
+              //   // [29, 'rgba(0,255,0,1)'],
+            ],
+            size: [
+              [2, 25],
+              [25, 25],
+              // [4, 15],
+              // [6, 20],
+              // [8, 25],
+              // [10, 30],
+              // [25, 40],
+            ],
+          },
+        }
+
+        return params
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>

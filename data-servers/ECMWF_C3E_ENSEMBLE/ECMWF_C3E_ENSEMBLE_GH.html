@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据服务-EC大气模式集合预报-位势高度</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const apiInfo = {
+        url: '/cmes-base-fileservice/file/v1/manage/mode/getIsoLine',
+        args: {
+          dataCode: {
+            value: 'ECMWF_C3E_ENSEMBLE_ENS_GLB',
+            type: 'string',
+            required: true,
+            desc: '资料编码',
+          },
+          element: {
+            value: 'GH',
+            type: 'string',
+            required: true,
+            desc: '要素',
+          },
+          levelType: {
+            value: 100,
+            type: 'number',
+            required: true,
+            desc: '等级类型',
+          },
+          level: {
+            value: 85000,
+            type: 'number',
+            required: true,
+            desc: '等级',
+          },
+          startTime: {
+            value: '20241205000000',
+            type: 'string',
+            required: true,
+            desc: '开始时间',
+          },
+          forecastTime: {
+            value: 240,
+            type: 'number',
+            required: true,
+            desc: '预报时间',
+          },
+        },
+      }
+
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { contourLayer } = window.CMECore
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      function onRun(params) {
+        // 请求新数据之前删除旧图层
+        if (tiffLayers?.cogLayer) {
+          mapObj.removeLayer(tiffLayers.cogLayer)
+        }
+        if (tiffLayers?.gridLayer) {
+          mapObj.removeLayer(tiffLayers.gridLayer)
+        }
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getIsoLine?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
+              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+              let tifUrl =
+                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+              addLayer(mapObj, tifUrl)
+            }
+          })
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:3857',
+            zoom: 2,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          const params = {
+            dataCode: 'ECMWF_C3E_ENSEMBLE_ENS_GLB',
+            element: 'GH',
+            levelType: 100,
+            level: 85000,
+            startTime: '20241205000000',
+            forecastTime: 240,
+          }
+          onRun(params)
+        })
+      }
+
+      async function addLayer(mapObj, url) {
+        let params = {
+          // 图层配置
+          colorRamp: [
+            [500, 'rgba(0, 0, 255, 1)'], // 大蓝
+            [510, 'rgba(20, 40, 255, 1)'], // 深蓝
+            [520, 'rgba(50, 80, 255, 1)'], // 中蓝
+            [530, 'rgba(255, 0, 0, 1)'], // 大红
+            [540, 'rgba(255, 50, 50, 1)'], // 红
+            [550, 'rgba(180, 0, 255, 1)'], // 大紫
+            [560, 'rgba(150, 0, 180, 1)'], // 紫
+            [570, 'rgba(100, 0, 140, 1)'], // 深紫
+
+            [590, 'rgba(255, 105, 180, 1)'], // 熏衣草粉
+          ],
+          // 设置等值线样式
+          lineStyle: {
+            // 是否使用图例
+            useColorRamp: false,
+            color: 'rgba(0,0,200,0.2)',
+
+            special: [
+              {
+                value: 580,
+                width: 10,
+                color: '#ffff00',
+              },
+              {
+                value: 560,
+                width: 5,
+                color: '#ff0000',
+              },
+            ],
+            //等值线值对应的字段
+            textValue: 'level-value',
+            //等值线值对应的颜色
+            fontColor: '#ffffff',
+            //等值线值对应的大小
+            fontSize: 35,
+            // 是否显示标签
+            showLabel: true,
+          },
+          // 设置极值点样式
+          extremeStyle: {
+            // 是否使用图例
+            // useColorRamp: false,
+            // 是否显示标签
+            showLabel: true,
+            textValue: 'value',
+            fontSize: 35,
+          },
+          projection: mapObj.getView().getProjection().getCode() || 'EPSG:3857',
+        }
+
+        const layer = new contourLayer(mapObj, params)
+        mapObj.addLayer(layer)
+        await layer.loadGeojson(url)
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>
