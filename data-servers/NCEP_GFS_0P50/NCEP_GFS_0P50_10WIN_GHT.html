@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>数据服务-CMA台风模式(CMA_TYM)-10米风</title>
+    <title>数据服务-NCEP全球模式(0.5°)-10米风与形式场</title>
     <link rel="stylesheet" href="/demo.css" />
   </head>
 
@@ -17,7 +17,7 @@
         url: '/cmes-base-fileservice/file/v1/manage/mode/getCogTiff',
         args: {
           dataCode: {
-            value: 'CMA_TYM_FOR_ASI',
+            value: 'NCEP_GFS_0P50_ENS_GLB',
             type: 'string',
             required: true,
             desc: '资料编码',
@@ -47,7 +47,7 @@
             desc: '开始时间',
           },
           forecastTime: {
-            value: 1,
+            value: 234,
             type: 'number',
             required: true,
             desc: '预报时间',
@@ -56,7 +56,7 @@
       }
 
       const { Map: CMEMap, View, source, layer } = window.CME2D
-      const { blendLayers, style } = window.CMECore
+      const { blendLayers, contourLayer } = window.CMECore
       // 作为全局对象保存
       let mapObj = null
       let tiffLayers = null
@@ -98,6 +98,38 @@
               singKleLayer(mapObj, tifUrl)
             }
           })
+        initIsoLine(mapObj, params)
+      }
+
+      function initIsoLine(map, params) {
+        let isolineParams = {
+          dataCode: 'NCEP_GFS_0P50_ENS_GLB',
+          element: 'HGT',
+          levelType: 100,
+          level: 85000,
+          startTime: '20241205000000',
+          forecastTime: 234,
+        }
+
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getIsoLine?${handleQueryString(isolineParams)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
+              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+              let tifUrl =
+                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+              addIsoLineLayer(mapObj, tifUrl)
+            }
+          })
       }
 
       function initMap(mapEl) {
@@ -126,12 +158,12 @@
         mapObj = initMap(mapEl)
         mapObj.once('postrender', function () {
           const params = {
-            dataCode: 'CMA_TYM_FOR_ASI',
+            dataCode: 'NCEP_GFS_0P50_ENS_GLB',
             element: 'WIN',
             levelType: 103,
             level: 10,
             startTime: '20241205000000',
-            forecastTime: 1,
+            forecastTime: 234,
           }
           onRun(params)
         })
@@ -156,17 +188,17 @@
             map.addLayer(layer)
           })
           // 绘制网格值
-          tiffLayers.addTextLayer(paramstext).then((layer) => {
-            let option = {
-              gridLayer: {
-                range: {
-                  min: 10,
-                  max: 20,
-                },
-              },
-            }
-            map.addLayer(layer)
-          })
+          // tiffLayers.addTextLayer(paramstext).then((layer) => {
+          //   let option = {
+          //     gridLayer: {
+          //       range: {
+          //         min: 10,
+          //         max: 20,
+          //       },
+          //     },
+          //   }
+          //   map.addLayer(layer)
+          // })
         })
         //绘制风向杆
         tiffLayers.addArrowLayer(paramsArrow).then((layer) => {
@@ -177,7 +209,7 @@
       function getMultiConfig() {
         let params = {
           layerName: 'cogtifLayer',
-          opacity: 1.0,
+          opacity: 0.8,
           interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
 
           zIndex: 14,
@@ -217,7 +249,7 @@
           zIndex: 200, //图层层级
           distanceArrow: 80, //距离
           textStyle: {
-            //   //文本样式
+            //文本样式
             Style: {
               text: {
                 Text: {
@@ -300,6 +332,66 @@
         }
 
         return params
+      }
+      async function addIsoLineLayer(mapObj, url) {
+        let params = {
+          // 图层配置
+          colorRamp: [
+            [500, 'rgba(0, 0, 255, 1)'], // 大蓝
+            [510, 'rgba(20, 40, 255, 1)'], // 深蓝
+            [520, 'rgba(50, 80, 255, 1)'], // 中蓝
+            [530, 'rgba(255, 0, 0, 1)'], // 大红
+            [540, 'rgba(255, 50, 50, 1)'], // 红
+            [550, 'rgba(180, 0, 255, 1)'], // 大紫
+            [560, 'rgba(150, 0, 180, 1)'], // 紫
+            [570, 'rgba(100, 0, 140, 1)'], // 深紫
+
+            [590, 'rgba(255, 105, 180, 1)'], // 熏衣草粉
+          ],
+          // 设置等值线样式
+          lineStyle: {
+            // 是否使用图例
+            useColorRamp: false,
+            color: 'rgba(0,0,200,0.2)',
+
+            special: [
+              {
+                value: 580,
+                width: 10,
+                color: '#ffff00',
+              },
+              {
+                value: 560,
+                width: 5,
+                color: '#ff0000',
+              },
+            ],
+            //等值线值对应的字段
+            textValue: 'level-value',
+            //等值线值对应的颜色
+            fontColor: '#ffffff',
+            //等值线值对应的大小
+            fontSize: 35,
+            // 是否显示标签
+            showLabel: true,
+          },
+          // 设置极值点样式
+          extremeStyle: {
+            // 是否使用图例
+            // useColorRamp: false,
+            // 是否显示标签
+            showLabel: true,
+            textValue: 'value',
+            fontSize: 35,
+          },
+          projection: mapObj.getView().getProjection().getCode() || 'EPSG:3857',
+          zIndex: 20,
+        }
+
+        const layer = new contourLayer(mapObj, params)
+        layer.setZIndex(20)
+        mapObj.addLayer(layer)
+        await layer.loadGeojson(url)
       }
     </script>
     <script type="text/javascript" src="/libs/message.js"></script>

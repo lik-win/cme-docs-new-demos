@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>数据服务-NCEP全球模式(0.5°)-10米风</title>
+    <title>数据服务-CMA全球天气模式(CMA_GFS)-气温与形式场</title>
     <link rel="stylesheet" href="/demo.css" />
   </head>
 
@@ -17,25 +17,25 @@
         url: '/cmes-base-fileservice/file/v1/manage/mode/getCogTiff',
         args: {
           dataCode: {
-            value: 'NCEP_GFS_0P50_ENS_GLB',
+            value: 'CMA_GFS_FOR_GLB',
             type: 'string',
             required: true,
             desc: '资料编码',
           },
           element: {
-            value: 'WIN',
+            value: 'TMP',
             type: 'string',
             required: true,
             desc: '要素',
           },
           levelType: {
-            value: 103,
+            value: 100,
             type: 'number',
             required: true,
             desc: '等级类型',
           },
           level: {
-            value: 10,
+            value: 85000,
             type: 'number',
             required: true,
             desc: '等级',
@@ -56,7 +56,7 @@
       }
 
       const { Map: CMEMap, View, source, layer } = window.CME2D
-      const { blendLayers, style } = window.CMECore
+      const { blendLayers, contourLayer } = window.CMECore
       // 作为全局对象保存
       let mapObj = null
       let tiffLayers = null
@@ -76,9 +76,6 @@
         if (tiffLayers?.gridLayer) {
           mapObj.removeLayer(tiffLayers.gridLayer)
         }
-        if (tiffLayers?.arrowLayer) {
-          mapObj.removeLayer(tiffLayers.arrowLayer)
-        }
         let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTiff?${handleQueryString(params)}`
         fetch(url, {
           method: 'GET',
@@ -96,6 +93,38 @@
               let tifUrl =
                 'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
               singKleLayer(mapObj, tifUrl)
+            }
+          })
+        initIsoLine(mapObj, params)
+      }
+
+      function initIsoLine(map, params) {
+        let isolineParams = {
+          dataCode: 'CMA_GFS_FOR_GLB',
+          element: 'HGT',
+          levelType: 100,
+          level: 85000,
+          startTime: '20241205000000',
+          forecastTime: 237,
+        }
+
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getIsoLine?${handleQueryString(isolineParams)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
+              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+              let tifUrl =
+                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+              addIsoLineLayer(mapObj, tifUrl)
             }
           })
       }
@@ -121,15 +150,16 @@
         })
         return map
       }
+
       window.onload = function () {
         const mapEl = document.querySelector('#map')
         mapObj = initMap(mapEl)
         mapObj.once('postrender', function () {
           const params = {
-            dataCode: 'NCEP_GFS_0P50_ENS_GLB',
-            element: 'WIN',
-            levelType: 103,
-            level: 10,
+            dataCode: 'CMA_GFS_FOR_GLB',
+            element: 'TMP',
+            levelType: 100,
+            level: 85000,
             startTime: '20241205000000',
             forecastTime: 234,
           }
@@ -138,16 +168,17 @@
       }
       function singKleLayer(map, url) {
         // 获取凤羽图的配置参数
-        const params = getMultiConfig()
+        const params = getsingleKConfig()
         // 获取文本配置参数
         const paramstext = getTextConfig()
         // 获取箭头配置参数
-        const paramsArrow = getArrowCogtig()
+        //  const paramsArrow=getArrowCogtig();
         tiffLayers = new blendLayers(map, {
           url: url,
           metadata: {
-            scale: 1, // 缩放比例
+            scale: 100, // 缩放比例
             offset: 0, //偏移量
+            unit: 'C', //单位 科尔文类型的tif转换温度
           },
         })
         //绘制色斑图
@@ -156,52 +187,50 @@
             map.addLayer(layer)
           })
           // 绘制网格值
-          tiffLayers.addTextLayer(paramstext).then((layer) => {
-            let option = {
-              gridLayer: {
-                range: {
-                  min: 10,
-                  max: 20,
-                },
-              },
-            }
-            map.addLayer(layer)
-          })
-        })
-        //绘制风向杆
-        tiffLayers.addArrowLayer(paramsArrow).then((layer) => {
-          map.addLayer(layer)
+          // tiffLayers.addTextLayer(paramstext).then((layer) => {
+          //   let option = {
+          //     gridLayer: {
+          //       range: {
+          //         min: 10,
+          //         max: 20,
+          //       },
+          //     },
+          //   }
+          //   map.addLayer(layer)
+          // })
         })
       }
 
-      function getMultiConfig() {
+      function getsingleKConfig() {
         let params = {
           layerName: 'cogtifLayer',
-          opacity: 1.0,
+          opacity: 0.8,
           interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
 
           zIndex: 14,
           // getColor(),
           colors: [
-            [0, [82, 71, 141, 1]],
-            [1, [85, 78, 177, 1]],
-            [2, [80, 87, 184, 1]],
-            [4, [67, 105, 196, 1]],
-            [6, [64, 160, 180, 1]],
-            [8, [78, 193, 103, 1]],
-            [10, [104, 209, 79, 1]],
-            [12, [157, 221, 68, 1]],
-            [16, [195, 226, 51, 1]],
-            [18, [247, 122, 9, 1]],
-            [20, [251, 60, 60, 1]],
-            [24, [0, 0, 0, 1]],
-            [30, [217, 66, 114, 1]],
-            [36, [147, 23, 78, 1]],
-            [42, [43, 0, 1, 1]],
-            [24, [194, 3, 0, 1]],
-            [30, [217, 66, 114, 1]],
-            [36, [147, 23, 78, 1]],
-            [42, [43, 0, 1, 1]],
+            [-36, [128, 0, 124, 1]],
+            [-32, [0, 47, 134, 1]],
+            [-28, [26, 92, 166, 1]],
+            [-24, [32, 117, 210, 1]],
+            [-20, [60, 160, 240, 1]],
+            [-16, [117, 207, 255, 1]],
+            [-12, [151, 255, 244, 1]],
+            [-8, [189, 249, 255, 1]],
+            [-4, [242, 255, 255, 1]],
+            [0, [223, 255, 217, 1]],
+            [4, [196, 255, 183, 1]],
+            [8, [186, 254, 131, 1]],
+            [12, [252, 254, 156, 1]],
+            [16, [255, 243, 196, 1]],
+            [20, [255, 220, 168, 1]],
+            [24, [255, 175, 117, 1]],
+            [28, [253, 135, 132, 1]],
+            [32, [236, 91, 95, 1]],
+            [35, [255, 51, 51, 1]],
+            [37, [201, 1, 1, 1]],
+            [40, [153, 51, 1, 1]],
           ],
         }
         return params
@@ -217,7 +246,7 @@
           zIndex: 200, //图层层级
           distanceArrow: 80, //距离
           textStyle: {
-            //文本样式
+            //   //文本样式
             Style: {
               text: {
                 Text: {
@@ -241,65 +270,65 @@
 
         return params
       }
-      function getArrowCogtig() {
+      async function addIsoLineLayer(mapObj, url) {
         let params = {
-          layerName: 'arrowLayer',
-          // arrow: {
-          // distanceArrow: 80,//默认是间隔80像素绘制
-          // type: 'wind', //  arrow 表示箭头  wind 表示风向杆
-          windType: 'arrow', //  arrow 表示箭头  wind 表示风向杆
-          zIndex: 1002,
-          type: 'arrow', //
-          style1: {
-            Style: {
-              image: {
-                cme_style_FontSymbol: {
-                  radius: 18,
-                  displacement: [0, 0],
-                  color: '#000000',
-                  //  "fill": {
-                  //   "Fill": {
-                  //     "color": "rgba(255,0,0,1)"
-                  //   }
-                  // },
-                  // "stroke": {
-                  //   "Stroke": {
-                  //     "color": "rgba(0,255,0,1)",
-                  //     "width": 1
-                  //   }
-                  //  }
-                },
+          // 图层配置
+          colorRamp: [
+            [500, 'rgba(0, 0, 255, 1)'], // 大蓝
+            [510, 'rgba(20, 40, 255, 1)'], // 深蓝
+            [520, 'rgba(50, 80, 255, 1)'], // 中蓝
+            [530, 'rgba(255, 0, 0, 1)'], // 大红
+            [540, 'rgba(255, 50, 50, 1)'], // 红
+            [550, 'rgba(180, 0, 255, 1)'], // 大紫
+            [560, 'rgba(150, 0, 180, 1)'], // 紫
+            [570, 'rgba(100, 0, 140, 1)'], // 深紫
+
+            [590, 'rgba(255, 105, 180, 1)'], // 熏衣草粉
+          ],
+          // 设置等值线样式
+          lineStyle: {
+            // 是否使用图例
+            useColorRamp: false,
+            color: 'rgba(0,0,200,0.2)',
+
+            special: [
+              {
+                value: 580,
+                width: 10,
+                color: '#ffff00',
               },
-            },
-          },
-          rule: {
-            color: [
-              //风力等级对应的颜色
-              [0, 'rgba(100,100,0,1)'],
-              [2, 'rgba(200,200,0,1)'],
-              [4, 'rgba(255,255,0,1)'],
-              [6, 'rgba(0,255,255,1)'],
-              [8, 'rgba(255,0,255,1)'],
-              [10, 'rgba(0,0,255,1)'],
-              [25, 'rgba(0,0,0,1)'],
-              //   // [18, 'rgba(0,255,0,1)'],
-              //   // [26, 'rgba(0,255,0,1)'],
-              //   // [28, 'rgba(0,255,0,1)'],
-              //   // [29, 'rgba(0,255,0,1)'],
+              {
+                value: 560,
+                width: 5,
+                color: '#ff0000',
+              },
             ],
-            size: [
-              [2, 25],
-              [25, 25],
-              // [4, 15],
-              // [6, 20],
-              // [8, 25],
-              // [10, 30],
-              // [25, 40],
-            ],
+            //等值线值对应的字段
+            textValue: 'level-value',
+            //等值线值对应的颜色
+            fontColor: '#ffffff',
+            //等值线值对应的大小
+            fontSize: 35,
+            // 是否显示标签
+            showLabel: true,
           },
+          // 设置极值点样式
+          extremeStyle: {
+            // 是否使用图例
+            // useColorRamp: false,
+            // 是否显示标签
+            showLabel: true,
+            textValue: 'value',
+            fontSize: 35,
+          },
+          projection: mapObj.getView().getProjection().getCode() || 'EPSG:3857',
+          zIndex: 20,
         }
 
-        return params
+        const layer = new contourLayer(mapObj, params)
+        layer.setZIndex(20)
+        mapObj.addLayer(layer)
+        await layer.loadGeojson(url)
       }
     </script>
     <script type="text/javascript" src="/libs/message.js"></script>
