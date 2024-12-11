@@ -111,7 +111,7 @@
             //地图视图
             center: [106, 35],
             projection: 'EPSG:4326',
-            zoom: 5,
+            zoom: 4.6,
             wrapX: true,
           }), //地图设置
           controls: [], //取消地图操作
@@ -155,17 +155,17 @@
             map.addLayer(layer)
           })
           // 绘制网格值
-          tiffLayers.addTextLayer(paramstext).then((layer) => {
-            let option = {
-              gridLayer: {
-                range: {
-                  min: 10,
-                  max: 20,
-                },
-              },
-            }
-            map.addLayer(layer)
-          })
+          // tiffLayers.addTextLayer(paramstext).then((layer) => {
+          //   let option = {
+          //     gridLayer: {
+          //       range: {
+          //         min: 10,
+          //         max: 20,
+          //       },
+          //     },
+          //   }
+          //   map.addLayer(layer)
+          // })
         })
       }
 
