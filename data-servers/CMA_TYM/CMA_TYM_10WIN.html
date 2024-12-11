@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>数据服务-CMA台风模式(CMA_TYM)-相对湿度</title>
+    <title>数据服务-CMA台风模式(CMA_TYM)-10米风</title>
     <link rel="stylesheet" href="/demo.css" />
   </head>
 
@@ -23,19 +23,19 @@
             desc: '资料编码',
           },
           element: {
-            value: 'RH',
+            value: 'WIN',
             type: 'string',
             required: true,
             desc: '要素',
           },
           levelType: {
-            value: 100,
+            value: 103,
             type: 'number',
             required: true,
             desc: '等级类型',
           },
           level: {
-            value: 85000,
+            value: 10,
             type: 'number',
             required: true,
             desc: '等级',
@@ -47,7 +47,7 @@
             desc: '开始时间',
           },
           forecastTime: {
-            value: 119,
+            value: 1,
             type: 'number',
             required: true,
             desc: '预报时间',
@@ -56,7 +56,7 @@
       }
 
       const { Map: CMEMap, View, source, layer } = window.CME2D
-      const { blendLayers, style } = window.CMECore
+      const { blendLayers, contourLayer } = window.CMECore
       // 作为全局对象保存
       let mapObj = null
       let tiffLayers = null
@@ -75,6 +75,9 @@
         }
         if (tiffLayers?.gridLayer) {
           mapObj.removeLayer(tiffLayers.gridLayer)
+        }
+        if (tiffLayers?.arrowLayer) {
+          mapObj.removeLayer(tiffLayers.arrowLayer)
         }
         let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTiff?${handleQueryString(params)}`
         fetch(url, {
@@ -124,22 +127,22 @@
         mapObj.once('postrender', function () {
           const params = {
             dataCode: 'CMA_TYM_FOR_ASI',
-            element: 'RH',
-            levelType: 100,
-            level: 85000,
+            element: 'WIN',
+            levelType: 103,
+            level: 10,
             startTime: '20241205000000',
-            forecastTime: 119,
+            forecastTime: 1,
           }
           onRun(params)
         })
       }
       function singKleLayer(map, url) {
         // 获取凤羽图的配置参数
-        const params = getsingleKConfig()
+        const params = getMultiConfig()
         // 获取文本配置参数
-        const paramstext = getTextCogtig()
+        const paramstext = getTextConfig()
         // 获取箭头配置参数
-        //  const paramsArrow=getArrowCogtig();
+        const paramsArrow = getArrowCogtig()
         tiffLayers = new blendLayers(map, {
           url: url,
           metadata: {
@@ -165,35 +168,46 @@
             map.addLayer(layer)
           })
         })
+        //绘制风向杆
+        tiffLayers.addArrowLayer(paramsArrow).then((layer) => {
+          map.addLayer(layer)
+        })
       }
 
-      function getsingleKConfig() {
+      function getMultiConfig() {
         let params = {
           layerName: 'cogtifLayer',
-          opacity: 0.8,
+          opacity: 1.0,
           interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
+
           zIndex: 14,
+          // getColor(),
           colors: [
-            [0, [173, 85, 56, 1]],
-            [30, [173, 110, 56, 1]],
-            [40, [173, 146, 56, 1]],
-            [50, [105, 173, 56, 1]],
-            [60, [56, 173, 121, 1]],
-            [70, [56, 174, 173, 1]],
-            [75, [56, 160, 173, 1]],
-            [80, [56, 157, 173, 1]],
-            [83, [56, 148, 173, 1]],
-            [87, [56, 135, 173, 1]],
-            [90, [56, 132, 173, 1]],
-            [93, [56, 123, 173, 1]],
-            [97, [56, 98, 157, 1]],
-            [100, [56, 70, 114, 1]],
+            [0, [82, 71, 141, 1]],
+            [1, [85, 78, 177, 1]],
+            [2, [80, 87, 184, 1]],
+            [4, [67, 105, 196, 1]],
+            [6, [64, 160, 180, 1]],
+            [8, [78, 193, 103, 1]],
+            [10, [104, 209, 79, 1]],
+            [12, [157, 221, 68, 1]],
+            [16, [195, 226, 51, 1]],
+            [18, [247, 122, 9, 1]],
+            [20, [251, 60, 60, 1]],
+            [24, [0, 0, 0, 1]],
+            [30, [217, 66, 114, 1]],
+            [36, [147, 23, 78, 1]],
+            [42, [43, 0, 1, 1]],
+            [24, [194, 3, 0, 1]],
+            [30, [217, 66, 114, 1]],
+            [36, [147, 23, 78, 1]],
+            [42, [43, 0, 1, 1]],
           ],
         }
         return params
       }
 
-      function getTextCogtig() {
+      function getTextConfig() {
         let params = {
           layerName: 'textLayer',
           type: 'grid',
@@ -222,6 +236,66 @@
                 },
               },
             },
+          },
+        }
+
+        return params
+      }
+      function getArrowCogtig() {
+        let params = {
+          layerName: 'arrowLayer',
+          // arrow: {
+          // distanceArrow: 80,//默认是间隔80像素绘制
+          // type: 'wind', //  arrow 表示箭头  wind 表示风向杆
+          windType: 'arrow', //  arrow 表示箭头  wind 表示风向杆
+          zIndex: 1002,
+          type: 'arrow', //
+          style1: {
+            Style: {
+              image: {
+                cme_style_FontSymbol: {
+                  radius: 18,
+                  displacement: [0, 0],
+                  color: '#000000',
+                  //  "fill": {
+                  //   "Fill": {
+                  //     "color": "rgba(255,0,0,1)"
+                  //   }
+                  // },
+                  // "stroke": {
+                  //   "Stroke": {
+                  //     "color": "rgba(0,255,0,1)",
+                  //     "width": 1
+                  //   }
+                  //  }
+                },
+              },
+            },
+          },
+          rule: {
+            color: [
+              //风力等级对应的颜色
+              [0, 'rgba(100,100,0,1)'],
+              [2, 'rgba(200,200,0,1)'],
+              [4, 'rgba(255,255,0,1)'],
+              [6, 'rgba(0,255,255,1)'],
+              [8, 'rgba(255,0,255,1)'],
+              [10, 'rgba(0,0,255,1)'],
+              [25, 'rgba(0,0,0,1)'],
+              //   // [18, 'rgba(0,255,0,1)'],
+              //   // [26, 'rgba(0,255,0,1)'],
+              //   // [28, 'rgba(0,255,0,1)'],
+              //   // [29, 'rgba(0,255,0,1)'],
+            ],
+            size: [
+              [2, 25],
+              [25, 25],
+              // [4, 15],
+              // [6, 20],
+              // [8, 25],
+              // [10, 30],
+              // [25, 40],
+            ],
           },
         }
 

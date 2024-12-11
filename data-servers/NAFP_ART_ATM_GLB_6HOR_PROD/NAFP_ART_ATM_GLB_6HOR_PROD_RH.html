@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>数据服务-NCEP全球模式(0.5°)-海平面气压</title>
+    <title>数据服务-全球大气实况分析逐6小时产品-相对湿度</title>
     <link rel="stylesheet" href="/demo.css" />
   </head>
 
@@ -17,25 +17,25 @@
         url: '/cmes-base-fileservice/file/v1/manage/mode/getCogTiff',
         args: {
           dataCode: {
-            value: 'NCEP_GFS_0P50_ENS_GLB',
+            value: 'NAFP_ART_ATM_GLB_6HOR_PROD',
             type: 'string',
             required: true,
             desc: '资料编码',
           },
           element: {
-            value: 'MSLET',
+            value: 'R',
             type: 'string',
             required: true,
             desc: '要素',
           },
           levelType: {
-            value: 101,
+            value: 100,
             type: 'number',
             required: true,
             desc: '等级类型',
           },
           level: {
-            value: 0,
+            value: 850,
             type: 'number',
             required: true,
             desc: '等级',
@@ -47,7 +47,7 @@
             desc: '开始时间',
           },
           forecastTime: {
-            value: 237,
+            value: 0,
             type: 'number',
             required: true,
             desc: '预报时间',
@@ -123,12 +123,12 @@
         mapObj = initMap(mapEl)
         mapObj.once('postrender', function () {
           const params = {
-            dataCode: 'NCEP_GFS_0P50_ENS_GLB',
-            element: 'MSLET',
-            levelType: 101,
-            level: 0,
+            dataCode: 'NAFP_ART_ATM_GLB_6HOR_PROD',
+            element: 'R',
+            levelType: 100,
+            level: 850,
             startTime: '20241205000000',
-            forecastTime: 237,
+            forecastTime: 0,
           }
           onRun(params)
         })
@@ -137,13 +137,13 @@
         // 获取凤羽图的配置参数
         const params = getsingleKConfig()
         // 获取文本配置参数
-        const paramstext = getTextConfig()
+        const paramstext = getTextCogtig()
         // 获取箭头配置参数
         //  const paramsArrow=getArrowCogtig();
         tiffLayers = new blendLayers(map, {
           url: url,
           metadata: {
-            scale: 100, // 缩放比例
+            scale: 1, // 缩放比例
             offset: 0, //偏移量
           },
         })
@@ -174,23 +174,26 @@
           interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
           zIndex: 14,
           colors: [
-            [990, [142, 179, 184, 1]],
-            [995, [104, 180, 179, 1]],
-            [1000, [69, 167, 166, 1]],
-            [1003, [57, 131, 147, 1]],
-            [1006, [57, 118, 147, 1]],
-            [1010, [57, 91, 147, 1]],
-            [1015, [58, 117, 53, 1]],
-            [1020, [159, 161, 65, 1]],
-            [1022, [173, 136, 57, 1]],
-            [1025, [170, 84, 67, 1]],
-            [1030, [94, 60, 81, 1]],
+            [0, [173, 85, 56, 1]],
+            [30, [173, 110, 56, 1]],
+            [40, [173, 146, 56, 1]],
+            [50, [105, 173, 56, 1]],
+            [60, [56, 173, 121, 1]],
+            [70, [56, 174, 173, 1]],
+            [75, [56, 160, 173, 1]],
+            [80, [56, 157, 173, 1]],
+            [83, [56, 148, 173, 1]],
+            [87, [56, 135, 173, 1]],
+            [90, [56, 132, 173, 1]],
+            [93, [56, 123, 173, 1]],
+            [97, [56, 98, 157, 1]],
+            [100, [56, 70, 114, 1]],
           ],
         }
         return params
       }
 
-      function getTextConfig() {
+      function getTextCogtig() {
         let params = {
           layerName: 'textLayer',
           type: 'grid',

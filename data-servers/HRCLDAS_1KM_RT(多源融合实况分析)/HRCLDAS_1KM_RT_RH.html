@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>数据服务-CMA台风模式(CMA_TYM)-相对湿度</title>
+    <title>数据服务-多源融合实况分析(HRCLDAS_1KM_RT)-相对湿度</title>
     <link rel="stylesheet" href="/demo.css" />
   </head>
 
@@ -17,7 +17,7 @@
         url: '/cmes-base-fileservice/file/v1/manage/mode/getCogTiff',
         args: {
           dataCode: {
-            value: 'CMA_TYM_FOR_ASI',
+            value: 'HRCLDAS_1KM_RT_ANA_CHN',
             type: 'string',
             required: true,
             desc: '资料编码',
@@ -29,13 +29,13 @@
             desc: '要素',
           },
           levelType: {
-            value: 100,
+            value: 103,
             type: 'number',
             required: true,
             desc: '等级类型',
           },
           level: {
-            value: 85000,
+            value: 2,
             type: 'number',
             required: true,
             desc: '等级',
@@ -47,7 +47,7 @@
             desc: '开始时间',
           },
           forecastTime: {
-            value: 119,
+            value: 0,
             type: 'number',
             required: true,
             desc: '预报时间',
@@ -123,12 +123,12 @@
         mapObj = initMap(mapEl)
         mapObj.once('postrender', function () {
           const params = {
-            dataCode: 'CMA_TYM_FOR_ASI',
+            dataCode: 'HRCLDAS_1KM_RT_ANA_CHN',
             element: 'RH',
-            levelType: 100,
-            level: 85000,
+            levelType: 103,
+            level: 2,
             startTime: '20241205000000',
-            forecastTime: 119,
+            forecastTime: 0,
           }
           onRun(params)
         })

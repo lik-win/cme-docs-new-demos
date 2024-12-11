@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>数据服务-CMA台风模式(CMA_TYM)-相对湿度</title>
+    <title>数据服务-多源融合实况分析(HRCLDAS_1KM_RT)-2m气温</title>
     <link rel="stylesheet" href="/demo.css" />
   </head>
 
@@ -17,25 +17,25 @@
         url: '/cmes-base-fileservice/file/v1/manage/mode/getCogTiff',
         args: {
           dataCode: {
-            value: 'CMA_TYM_FOR_ASI',
+            value: 'HRCLDAS_1KM_RT_ANA_CHN',
             type: 'string',
             required: true,
             desc: '资料编码',
           },
           element: {
-            value: 'RH',
+            value: 'TEMP_2M',
             type: 'string',
             required: true,
             desc: '要素',
           },
           levelType: {
-            value: 100,
+            value: 103,
             type: 'number',
             required: true,
             desc: '等级类型',
           },
           level: {
-            value: 85000,
+            value: 2,
             type: 'number',
             required: true,
             desc: '等级',
@@ -47,7 +47,7 @@
             desc: '开始时间',
           },
           forecastTime: {
-            value: 119,
+            value: 0,
             type: 'number',
             required: true,
             desc: '预报时间',
@@ -123,12 +123,12 @@
         mapObj = initMap(mapEl)
         mapObj.once('postrender', function () {
           const params = {
-            dataCode: 'CMA_TYM_FOR_ASI',
-            element: 'RH',
-            levelType: 100,
-            level: 85000,
+            dataCode: 'HRCLDAS_1KM_RT_ANA_CHN',
+            element: 'TEMP_2M',
+            levelType: 103,
+            level: 2,
             startTime: '20241205000000',
-            forecastTime: 119,
+            forecastTime: 0,
           }
           onRun(params)
         })
@@ -137,7 +137,7 @@
         // 获取凤羽图的配置参数
         const params = getsingleKConfig()
         // 获取文本配置参数
-        const paramstext = getTextCogtig()
+        const paramstext = getTextConfig()
         // 获取箭头配置参数
         //  const paramsArrow=getArrowCogtig();
         tiffLayers = new blendLayers(map, {
@@ -170,30 +170,39 @@
       function getsingleKConfig() {
         let params = {
           layerName: 'cogtifLayer',
-          opacity: 0.8,
+          opacity: 1.0,
           interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
+
           zIndex: 14,
+          // getColor(),
           colors: [
-            [0, [173, 85, 56, 1]],
-            [30, [173, 110, 56, 1]],
-            [40, [173, 146, 56, 1]],
-            [50, [105, 173, 56, 1]],
-            [60, [56, 173, 121, 1]],
-            [70, [56, 174, 173, 1]],
-            [75, [56, 160, 173, 1]],
-            [80, [56, 157, 173, 1]],
-            [83, [56, 148, 173, 1]],
-            [87, [56, 135, 173, 1]],
-            [90, [56, 132, 173, 1]],
-            [93, [56, 123, 173, 1]],
-            [97, [56, 98, 157, 1]],
-            [100, [56, 70, 114, 1]],
+            [-36, [128, 0, 124, 1]],
+            [-32, [0, 47, 134, 1]],
+            [-28, [26, 92, 166, 1]],
+            [-24, [32, 117, 210, 1]],
+            [-20, [60, 160, 240, 1]],
+            [-16, [117, 207, 255, 1]],
+            [-12, [151, 255, 244, 1]],
+            [-8, [189, 249, 255, 1]],
+            [-4, [242, 255, 255, 1]],
+            [0, [223, 255, 217, 1]],
+            [4, [196, 255, 183, 1]],
+            [8, [186, 254, 131, 1]],
+            [12, [252, 254, 156, 1]],
+            [16, [255, 243, 196, 1]],
+            [20, [255, 220, 168, 1]],
+            [24, [255, 175, 117, 1]],
+            [28, [253, 135, 132, 1]],
+            [32, [236, 91, 95, 1]],
+            [35, [255, 51, 51, 1]],
+            [37, [201, 1, 1, 1]],
+            [40, [153, 51, 1, 1]],
           ],
         }
         return params
       }
 
-      function getTextCogtig() {
+      function getTextConfig() {
         let params = {
           layerName: 'textLayer',
           type: 'grid',
