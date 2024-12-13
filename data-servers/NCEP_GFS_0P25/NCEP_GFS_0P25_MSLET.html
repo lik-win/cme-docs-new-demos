@@ -102,6 +102,7 @@
           target: mapEl, //挂载实例
           layers: [
             new layer.Tile({
+              zIndex: 999,
               source: new source.XYZ({
                 url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
               }),
@@ -139,13 +140,9 @@
         // 获取文本配置参数
         const paramstext = getTextConfig()
         // 获取箭头配置参数
-        //  const paramsArrow=getArrowCogtig();
+        //  const paramsArrow=getArrowConfig();
         tiffLayers = new blendLayers(map, {
           url: url,
-          metadata: {
-            scale: 100, // 缩放比例
-            offset: 0, //偏移量
-          },
         })
         //绘制色斑图
         tiffLayers._render(params).then((object) => {
@@ -170,21 +167,21 @@
       function getsingleKConfig() {
         let params = {
           layerName: 'cogtifLayer',
-          opacity: 0.8,
-          interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
+          opacity: 1.0,
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
           zIndex: 14,
           colors: [
-            [990, [142, 179, 184, 1]],
-            [995, [104, 180, 179, 1]],
-            [1000, [69, 167, 166, 1]],
-            [1003, [57, 131, 147, 1]],
-            [1006, [57, 118, 147, 1]],
-            [1010, [57, 91, 147, 1]],
-            [1015, [58, 117, 53, 1]],
-            [1020, [159, 161, 65, 1]],
-            [1022, [173, 136, 57, 1]],
-            [1025, [170, 84, 67, 1]],
-            [1030, [94, 60, 81, 1]],
+            [99000, [142, 179, 184, 1]],
+            [99500, [104, 180, 179, 1]],
+            [100000, [69, 167, 166, 1]],
+            [100300, [57, 131, 147, 1]],
+            [100600, [57, 118, 147, 1]],
+            [101000, [57, 91, 147, 1]],
+            [101500, [58, 117, 53, 1]],
+            [102000, [159, 161, 65, 1]],
+            [102200, [173, 136, 57, 1]],
+            [102500, [170, 84, 67, 1]],
+            [103000, [94, 60, 81, 1]],
           ],
         }
         return params

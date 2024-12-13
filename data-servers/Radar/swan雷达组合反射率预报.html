@@ -37,6 +37,7 @@
           target: mapEl, //挂载实例
           layers: [
             new layer.Tile({
+              zIndex: 999,
               source: new source.XYZ({
                 url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
               }),
@@ -75,7 +76,7 @@
         // 获取文本配置参数
         const paramstext = getTextConfig()
         // 获取箭头配置参数
-        //  const paramsArrow=getArrowCogtig();
+        //  const paramsArrow=getArrowConfig();
         tiffLayers = new blendLayers(map, {
           url: url,
         })

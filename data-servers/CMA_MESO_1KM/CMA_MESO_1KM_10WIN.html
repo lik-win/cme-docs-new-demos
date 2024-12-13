@@ -105,6 +105,7 @@
           target: mapEl, //挂载实例
           layers: [
             new layer.Tile({
+              zIndex: 999,
               source: new source.XYZ({
                 url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
               }),
@@ -142,7 +143,7 @@
         // 获取文本配置参数
         const paramstext = getTextConfig()
         // 获取箭头配置参数
-        const paramsArrow = getArrowCogtig()
+        const paramsArrow = getArrowConfig()
         tiffLayers = new blendLayers(map, {
           url: url,
           metadata: {
@@ -178,7 +179,7 @@
         let params = {
           layerName: 'cogtifLayer',
           opacity: 1.0,
-          interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
 
           zIndex: 14,
           // getColor(),
@@ -241,64 +242,25 @@
 
         return params
       }
-      function getArrowCogtig() {
+      function getArrowConfig() {
         let params = {
           layerName: 'arrowLayer',
-          // arrow: {
-          // distanceArrow: 80,//默认是间隔80像素绘制
-          // type: 'wind', //  arrow 表示箭头  wind 表示风向杆
-          windType: 'arrow', //  arrow 表示箭头  wind 表示风向杆
+          windType: 'wind', //  arrow 表示箭头  wind 表示风向杆
           zIndex: 1002,
-          type: 'arrow', //
+          precision: 2, //格网数据显示的小数点的精度
+          distance: 24, //距离
           style1: {
             Style: {
               image: {
                 cme_style_FontSymbol: {
-                  radius: 18,
+                  radius: 10,
                   displacement: [0, 0],
-                  color: '#000000',
-                  //  "fill": {
-                  //   "Fill": {
-                  //     "color": "rgba(255,0,0,1)"
-                  //   }
-                  // },
-                  // "stroke": {
-                  //   "Stroke": {
-                  //     "color": "rgba(0,255,0,1)",
-                  //     "width": 1
-                  //   }
-                  //  }
+                  color: 'rgba(0,0,0,200)',
                 },
               },
             },
           },
-          rule: {
-            color: [
-              //风力等级对应的颜色
-              [0, 'rgba(100,100,0,1)'],
-              [2, 'rgba(200,200,0,1)'],
-              [4, 'rgba(255,255,0,1)'],
-              [6, 'rgba(0,255,255,1)'],
-              [8, 'rgba(255,0,255,1)'],
-              [10, 'rgba(0,0,255,1)'],
-              [25, 'rgba(0,0,0,1)'],
-              //   // [18, 'rgba(0,255,0,1)'],
-              //   // [26, 'rgba(0,255,0,1)'],
-              //   // [28, 'rgba(0,255,0,1)'],
-              //   // [29, 'rgba(0,255,0,1)'],
-            ],
-            size: [
-              [2, 25],
-              [25, 25],
-              // [4, 15],
-              // [6, 20],
-              // [8, 25],
-              // [10, 30],
-              // [25, 40],
-            ],
-          },
         }
-
         return params
       }
     </script>

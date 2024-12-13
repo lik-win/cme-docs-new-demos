@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>日值区域统计</title>
+    <style>
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #Echart {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="Echart"></div>
+    <script type="text/javascript" src="/libs/echarts.min.js"></script>
+    <script type="text/javascript" src="/libs/dayjs.min.js"></script>
+    <script type="text/javascript">
+      let chart = null,
+        option = {}
+      const apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-gbase/cmes_gbase/inte/selectInteAreaInfoDay',
+        args: {
+          areaCode: {
+            value: '110000',
+            type: 'string',
+            required: true,
+            desc: '行政编码',
+          },
+          areaName: {
+            value: '北京',
+            type: 'string',
+            required: true,
+            desc: '地区名称',
+          },
+          elementMark: {
+            value: ['maxSumPre'],
+            type: 'array',
+            required: true,
+            desc: '查询类型',
+          },
+          startTime: {
+            value: '2024-07-11 00:00:00',
+            type: 'string',
+            required: true,
+            desc: '开始时间',
+          },
+          endTime: {
+            value: '2024-07-17 00:00:00',
+            type: 'string',
+            required: true,
+            desc: '结束时间',
+          },
+          page: {
+            value: 1,
+            type: 'number',
+            required: true,
+            desc: '页码',
+          },
+          size: {
+            value: 50,
+            type: 'number',
+            required: true,
+            desc: '分页大小',
+          },
+          sortName: {
+            value: 'maxSumPre',
+            type: 'string',
+            required: true,
+            desc: '排序字段',
+          },
+          sort: {
+            value: 'DESC',
+            type: 'string',
+            required: true,
+            desc: '排序方式',
+          },
+        },
+      }
+
+      const _request = (val) => {
+        const params = {
+          areaCode: '110000',
+          areaName: '北京',
+          avgSumTempThreshold: 10,
+          bigWindThreshold: 10.8,
+          elementMark: ['maxSumPre'],
+          endDay: '',
+          endMon: '',
+          endTime: '2024-07-18 00:00:00',
+          endYear: '',
+          highTempThreshold1: 35,
+          ids: [],
+          isMoreTime: true,
+          lowTempThreshold: 0,
+          mon: '',
+          noIds: [],
+          otherMark: [],
+          page: 1,
+          preThreshold: 0.1,
+          preType: '08-08',
+          requestType: 'city',
+          searcheTypes: ['maxSumPre'],
+          size: 60,
+          sizeLength: 15,
+          sort: 'DESC',
+          sortName: 'maxSumPre',
+          staType: 'countrySta',
+          startDay: '',
+          startMon: '',
+          startTime: '2024-07-11 00:00:00',
+          startYear: '',
+          ten: '',
+          timeOption: 'day',
+          year: '',
+        }
+        fetch(apiInfo.url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify(params),
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.code === 200) {
+              let { data } = res
+              let list = data.list || []
+              let xAxis = [],
+                yAxis = []
+              for (let i = 1; i < list.length; i++) {
+                xAxis.push(list[i].city)
+                yAxis.push(Number(list[i].maxSumPre))
+              }
+              let time = `（${dayjs(params.startTime).format('MM') || '-'}月${dayjs(params.startTime).format('DD') || '-'}日~${dayjs(params.endTime).format('MM') || '-'}月${dayjs(params.endTime).format('DD') || '-'}日）`
+              option.title.text = `累计降水量区域统计图${time}`
+              option.xAxis.data = xAxis
+              option.series = [
+                {
+                  data: yAxis,
+                  type: 'bar',
+                  label: {
+                    show: true, // 开启显示标签
+                    position: 'top', // 设置标签显示在柱子的顶部
+                    textStyle: {
+                      // 设置标签的样式
+                      color: '#000', // 标签字体颜色
+                      fontSize: 12, // 标签字体大小
+                    },
+                  },
+                },
+              ]
+              chart.setOption(option)
+              chart.resize()
+            }
+          })
+      }
+      function initEchart() {
+        option = {
+          title: {
+            left: 'center',
+            top: '2%',
+            text: '',
+            color: '#333',
+            fontSize: '16',
+            subtextStyle: {
+              color: '#90979c',
+              fontSize: '16',
+            },
+          },
+          legend: {
+            top: '8%',
+            color: '#90979c',
+          },
+          color: ['#335cce'],
+          tooltip: {
+            trigger: 'axis',
+            fontSize: 14,
+            formatter: function (params, ticket, callback) {
+              return ` ${params[0].name}: <span style='color:#335cce;font-weight:bold'>${params[0].value}</span> mm`
+            },
+            textStyle: {
+              color: '#000',
+              fontSize: 14,
+              fontFamily: 'MicrosoftYaHei',
+            },
+          },
+          grid: {
+            top: '15%',
+            left: '6%',
+            right: '4%',
+            bottom: 30,
+            containLabel: true, //包括文本，居中
+          },
+          xAxis: {
+            type: 'category',
+            data: [],
+            axisLabel: {
+              margin: 10,
+              textStyle: {
+                fontSize: 14,
+              },
+            },
+            axisLine: {
+              lineStyle: {
+                color: '#477AA5',
+              },
+            },
+            axisTick: {
+              show: false,
+            },
+            splitLine: {
+              show: false,
+            },
+          },
+          yAxis: {
+            name: '累计降水量(mm)',
+            type: 'value',
+            splitNumber: 7,
+            axisLine: { show: true },
+            axisTick: { show: true },
+            splitLine: {
+              show: true,
+              lineStyle: {
+                type: 'dashed',
+                color: '#000',
+              },
+            },
+            axisLabel: {
+              margin: 10,
+              textStyle: {
+                color: '#000',
+              },
+            },
+          },
+          series: [],
+        }
+        const dom = document.getElementById('Echart')
+        chart = echarts.init(dom)
+      }
+      window.onload = function () {
+        initEchart()
+        onRun()
+        window.addEventListener('resize', () => {
+          chart?.resize()
+        })
+      }
+      function onRun(params) {
+        _request(params)
+      }
+    </script>
+  </body>
+</html>

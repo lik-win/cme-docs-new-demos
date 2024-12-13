@@ -102,6 +102,7 @@
           target: mapEl, //挂载实例
           layers: [
             new layer.Tile({
+              zIndex: 999,
               source: new source.XYZ({
                 url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
               }),
@@ -139,7 +140,7 @@
         // 获取文本配置参数
         const paramstext = getTextCogtig()
         // 获取箭头配置参数
-        //  const paramsArrow=getArrowCogtig();
+        //  const paramsArrow=getArrowConfig();
         tiffLayers = new blendLayers(map, {
           url: url,
           metadata: {
@@ -170,8 +171,8 @@
       function getsingleKConfig() {
         let params = {
           layerName: 'cogtifLayer',
-          opacity: 0.8,
-          interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
+          opacity: 1.0,
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
           zIndex: 14,
           colors: [
             [0, [173, 85, 56, 1]],

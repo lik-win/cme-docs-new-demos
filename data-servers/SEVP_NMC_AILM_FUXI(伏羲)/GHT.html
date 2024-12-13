@@ -101,6 +101,7 @@
           target: mapEl, //挂载实例
           layers: [
             new layer.Tile({
+              zIndex: 999,
               source: new source.XYZ({
                 url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
               }),
