@@ -279,7 +279,7 @@
         let params = {
           layerName: 'arrowLayer',
           windType: 'wind', //  arrow 表示箭头  wind 表示风向杆
-          zIndex: 1002,
+          zIndex: 500,
           precision: 2, //格网数据显示的小数点的精度
           distance: 24, //距离
           style1: {
@@ -298,7 +298,7 @@
       }
       async function addIsoLineLayer(mapObj, url) {
         let params = {
-          zIndex: 1005,
+          zIndex: 1000,
           // 图层配置
           colorRamp: [
             [500, 'rgba(0, 0, 255, 1)'], // 大蓝
