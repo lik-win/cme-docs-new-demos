@@ -20,7 +20,7 @@
             value: 'NSMC_FY4B_AGRI_L1_GLB',
             type: 'string',
             required: true,
-            desc: '资料编码',
+            desc: '资料代码',
           },
           loadType: {
             value: 'AGRI',
@@ -50,7 +50,7 @@
       }
 
       const { Map: CMEMap, View, source, layer } = window.CME2D
-      const { blendLayers, style } = window.CMECore
+      const { blendLayers } = window.CMECore
       // 作为全局对象保存
       let mapObj = null
       let tiffLayers = null
@@ -64,11 +64,8 @@
 
       function onRun(params) {
         // 请求新数据之前删除旧图层
-        if (tiffLayers?.cogLayer) {
-          mapObj.removeLayer(tiffLayers.cogLayer)
-        }
-        if (tiffLayers?.gridLayer) {
-          mapObj.removeLayer(tiffLayers.gridLayer)
+        if (tiffLayers) {
+          mapObj.removeLayer(tiffLayers)
         }
         let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/sate/getCogTif?${handleQueryString(params)}`
         fetch(url, {
@@ -131,15 +128,9 @@
         // 获取凤羽图的配置参数
         const params = getsingleKConfig()
         // 获取文本配置参数
-        const paramstext = getTextConfig()
-        // 获取箭头配置参数
-        //  const paramsArrow=getArrowConfig();
+        // const paramstext = getTextCogtig()
         tiffLayers = new blendLayers(map, {
           url: url,
-          metadata: {
-            scale: 1, // 缩放比例
-            offset: 0, //偏移量
-          },
         })
         //绘制色斑图
         tiffLayers._render(params).then((object) => {
@@ -166,29 +157,28 @@
           layerName: 'cogtifLayer',
           opacity: 1.0,
           interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
-
           zIndex: 14,
-          // getColor(),
           colors: [
-            [-70, [115, 70, 105, 1]],
-            [-55, [202, 172, 195, 1]],
-            [-40, [162, 70, 145, 1]],
-            [-25, [143, 89, 169, 1]],
-            [-15, [157, 219, 217, 1]],
-            [-8, [106, 191, 181, 1]],
-            [-4, [100, 166, 189, 1]],
-            [0, [93, 133, 198, 1]],
-            [1, [68, 125, 99, 1]],
-            [10, [128, 147, 24, 1]],
-            [21, [243, 183, 4, 1]],
-            [30, [232, 83, 25, 1]],
-            [47, [71, 14, 0, 1]],
+            [102.01, [0, 0, 0, 1]],
+            [143, [46, 45, 46, 1]],
+            [168.99, [95, 92, 96, 1]],
+            [182.11, [145, 138, 145, 1]],
+            [191.57, [194, 185, 194, 1]],
+            [208.51, [239, 144, 163, 1]],
+            [217.48, [245, 98, 100, 1]],
+            [227.18, [152, 116, 74, 1]],
+            [232.85, [199, 163, 84, 1]],
+            [242.09, [218, 208, 135, 1]],
+            [264.93, [130, 169, 206, 1]],
+            [278.51, [90, 115, 171, 1]],
+            [290.01, [53, 65, 138, 1]],
+            [307.71, [20, 22, 102, 1]],
           ],
         }
         return params
       }
 
-      function getTextConfig() {
+      function getTextCogtig() {
         let params = {
           layerName: 'textLayer',
           type: 'grid',
