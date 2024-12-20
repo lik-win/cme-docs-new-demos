@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>港口气象图表</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <style>
+      .columnar_box {
+        width: 100%;
+        height: 100%;
+      }
+      .columnar_box #chart {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="columnar_box">
+      <div id="chart"></div>
+    </div>
+  </body>
+  <script type="text/javascript" src="/libs/echarts.min.js"></script>
+  <script type="text/javascript">
+    let axisData = [
+      '厦门',
+      '福州',
+      '辽宁',
+      '天津',
+      '山东',
+      '上海',
+      '浙江',
+      '广州',
+      '北部湾',
+    ]
+    let data = ['61', '14', '7', '9', '9', '2', '2', '10', '8']
+
+    const initChart = () => {
+      const chartDom = document.getElementById('chart')
+      if (chartDom) {
+        if (echarts.getInstanceByDom(chartDom)) {
+          echarts.getInstanceByDom(chartDom)?.dispose() //销毁
+        }
+      }
+      const myChart = echarts.init(chartDom)
+      myChart.setOption({
+        title: {
+          text: '国内挂靠港口航线',
+        },
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: {
+            type: 'shadow',
+          },
+        },
+        xAxis: {
+          type: 'category',
+          data: axisData,
+          // splitLine: {
+          //   show: false, // 不显示网格线
+          // },
+          // axisTick: {
+          //   show: false, // 不显示坐标轴刻度线
+          // },
+          axisLabel: {
+            // fontSize: 14,
+            color: '#000000',
+            interval: 0,
+            rotate: 40,
+          },
+        },
+        yAxis: {
+          type: 'value',
+          name: '数量(条)',
+          position: 'left',
+          nameTextStyle: {
+            padding: [0, 0, 0, -10],
+            color: '#000000',
+          },
+          axisLabel: {
+            color: '#000000',
+          },
+          min: 0, // 设置最小值
+          splitLine: {
+            show: false, // 不显示网格线
+          },
+        },
+        series: [
+          {
+            data: data,
+            type: 'bar',
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(
+                0,
+                0,
+                0,
+                1, // x1, y1, x2, y2 指定渐变的起点和终点位置
+                // [
+                //   { offset: 0, color: "rgba(206, 218, 225, 1)" }, // 渐变起始颜色
+                //   { offset: 0.7, color: "rgba(237, 249, 255, 0.20)" }, // 渐变结束颜色
+                // ]
+
+                [
+                  { offset: 0, color: 'rgba(206, 0, 0, 1)' }, // 渐变起始颜色
+                  { offset: 0.7, color: 'rgba(237, 249, 0, 1)' }, // 渐变结束颜色
+                ],
+              ),
+            },
+            label: {
+              show: true,
+              position: 'top',
+              valueAnimation: true,
+              textStyle: {
+                color: '#000000',
+                fontSize: 14,
+              },
+            },
+            barWidth: '45%',
+          },
+        ],
+      })
+    }
+    window.onload = function () {
+      initChart()
+    }
+  </script>
+</html>

@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>船舶类型</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, Feature, layer } = window.CME2D
+      const { Point } = window.CME2D.geom
+      const { Style, Icon } = window.CME2D.style
+      const { Vector: VectorSource, XYZ } = window.CME2D.source
+      const { Vector: VectorLayer } = window.CME2D.layer
+      const { blendLayers, style } = window.CMECore
+
+      let feature = null
+      let source, vector
+      let textKey = null
+      let keys = ''
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      let shiplist = null
+
+      const getShipList = () => {
+        fetch('/cme/data/navigation-business/ship.json')
+          .then((res) => res.json())
+          .then((res) => {
+            shiplist = res
+            init()
+          })
+      }
+
+      function instantiation() {
+        let srcImg = ''
+        let svg = `
+    <svg t="1685946015880" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="859" width="12" height="12" style="width:12px;height:12px;">
+      <path d="M1024 0v1024H0V0z" fill="#1A1E2B" p-id="860"></path>
+      <path d="M998.4 25.6H25.6v972.8h972.8z" fill="#FFE30D" p-id="861"></path>
+    </svg>
+`
+        let stat = `data:image/svg+xml;base64,${btoa(svg)}`
+        const styles = [
+          new Style({
+            image: new Icon({
+              src: stat,
+              imgSize: [26, 26],
+              scale: 1,
+              rotation: null,
+            }),
+          }),
+        ]
+        source = new VectorSource()
+        vector = new VectorLayer({
+          source: source,
+          style: styles,
+          id: keys,
+          zIndex: 1000,
+        })
+        mapObj.addLayer(vector)
+      }
+
+      // 渲染点数据
+      /*
+* @param: lon:  经度
+  @param: lat: 纬度
+  @param: header: 船头朝向（旋转角度）
+  @param: shiptype: 舰船类型
+  @param: code:  舰船 航行状态类型值 0
+*/
+      function addMark(lon, lat, header, shiptype, code) {
+        var screenCoordinate = [lon, lat]
+        feature = new Feature({
+          geometry: new Point(screenCoordinate),
+        })
+        source.addFeature(feature)
+        // 是否 添加 text
+        // 有header 是添加 船舶 header 为undefined 添加港口
+        if (header !== undefined) {
+          if (shiptype === '货船') {
+            if (code == '5') {
+              let color = '#FFE30D'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '1') {
+              let color = '#FFE30D'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '0') {
+              let color = '#FFE30D'
+              newIconStyle(1, header, [30, 30], code, color)
+            }
+          } else if (shiptype === '油轮') {
+            if (code == '5') {
+              let color = '#44FFA4'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '1') {
+              let color = '#44FFA4'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '0') {
+              let color = '#44FFA4'
+              newIconStyle(1, header, [30, 30], code, color)
+            }
+          } else if (shiptype === '其他') {
+            if (code == '5') {
+              let color = '#FFFFFF'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '1') {
+              let color = '#FFFFFF'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '0') {
+              let color = '#FFFFFF'
+              newIconStyle(1, header, [30, 30], code, color)
+            }
+          } else if (shiptype === '执法') {
+            if (code == '5') {
+              let color = '#FF5050'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '1') {
+              let color = '#FF5050'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '0') {
+              let color = '#FF5050'
+              newIconStyle(1, header, [30, 30], code, color)
+            }
+          } else if (shiptype === '客船') {
+            if (code == '5') {
+              let color = '#68D9FE'
+              newIconStyle(1, header, code, color)
+            } else if (code == '1') {
+              let color = '#68D9FE'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '0') {
+              let color = '#68D9FE'
+              newIconStyle(1, header, code, color)
+            }
+          } else if (shiptype == '渔船') {
+            if (code == '5') {
+              let color = '#08FF1C'
+              newIconStyle(1, header, code, color)
+            } else if (code == '1') {
+              let color = '#08FF1C'
+              newIconStyle(1, header, [26, 26], code, color)
+            } else if (code == '0') {
+              let color = '#08FF1C'
+              newIconStyle(1, header, [30, 30], code, color)
+            }
+          }
+        }
+      }
+      // 处理船舶icon 朝向 和船舶样式
+      /*
+* @param: icon:  png图片
+  @param: scale: 缩放0-1之间
+  @param: header: 船头朝向（旋转角度）
+  @size:  size: imgSize数据类型为[]
+  @code:  舰船 航行状态类型值
+  @color: svg 颜色 不同类型 舰船对应不同颜色
+*/
+      // 添加 舰船颜色 和船头朝向
+      /*
+* @param: icon: svg图片 和 png图片
+  @param: scale: 缩放0-1之间
+  @param: header: 船头朝向（旋转角度）
+  @size:  size: imgSize数据类型为[]
+*/
+      function newIconStyle(scale, header, size, code, color) {
+        if (code == '5') {
+          //停泊
+          let svg = `
+    <svg t="1685946015880" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="859" width="12" height="12" style="width:12px;height:12px;">
+      <path d="M1024 0v1024H0V0z" fill="#1A1E2B" p-id="860"></path>
+      <path d="M998.4 25.6H25.6v972.8h972.8z" fill="${color}" p-id="861"></path>
+    </svg>
+`
+          let stat = `data:image/svg+xml;base64,${btoa(svg)}`
+          addShipColor(stat, scale, header, size)
+        } else if (code == '1') {
+          //静止
+          let svg = `<svg
+      t="1679362134110"
+      class="icon"
+      viewBox="0 0 1024 1024"
+      version="1.1"
+      xmlns="http://www.w3.org/2000/svg"
+      p-id="1656"
+      width="26px"
+      height="26px">
+      <path
+        d="M722.823529 1024L508.717176 8.734118 301.176471 1024z"
+        fill="#1A1E2B"
+        p-id="1657">
+      </path>
+      <path
+        d="M509.078588 137.185882l173.477647 858.262589H341.022118z"
+        fill="${color}"
+        p-id="1658">
+      </path>
+    </svg>`
+          let stat = `data:image/svg+xml;base64,${btoa(svg)}`
+          addShipColor(stat, scale, header, size)
+        } else if (code == '0') {
+          //航行
+          let svg = `<svg
+    t="1679362234469"
+    class="icon"
+    viewBox="0 0 1024 1024"
+    version="1.1"
+    xmlns="http://www.w3.org/2000/svg"
+    p-id="1805"
+    width="30px"
+    height="30px">
+    <path
+      d="M519.616 0v351.978667L661.333333 1024H362.666667l137.386666-672.106667V0h19.562667z"
+      fill="#1A1E2B"
+      p-id="1806">
+    </path>
+    <path
+      d="M509.930667 395.84l122.88 607.936H390.890667z"
+      fill="${color}"
+      p-id="1807">
+    </path>
+  </svg>`
+          let icon = `data:image/svg+xml;base64,${btoa(svg)}`
+          addShipColor(icon, scale, header, size)
+        }
+      }
+      function addShipColor(icon, scale, header, size) {
+        feature.setStyle(
+          new Style({
+            image: new Icon({
+              imgSize: size,
+              src: icon,
+              scale: scale,
+              rotation: header,
+            }),
+          }),
+        )
+      }
+
+      const handleOther = () => {
+        let treeData = shiplist.data
+        findNodeById(treeData)
+      }
+      const findNodeById = (treeData) => {
+        let key = undefined
+        if (treeData === null) return
+        for (var i = 0; i < treeData.length; i++) {
+          if (treeData[i].level == '4') {
+            if (
+              treeData[i].ship_info.longitude &&
+              treeData[i].ship_info.latitude !== null
+            ) {
+              addMark(
+                treeData[i].ship_info.longitude,
+                treeData[i].ship_info.latitude,
+                treeData[i].ship_info.heading,
+                treeData[i].ship_info.shiptype,
+                treeData[i].ship_info.navstatuscode,
+                key,
+                treeData[i].ship_info.callsign,
+              )
+            }
+          } else {
+            if (treeData[i].children && treeData[i].children.length > 0) {
+              findNodeById(treeData[i].children)
+            }
+          }
+        }
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new XYZ({
+                url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 4,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      function init() {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          instantiation()
+          handleOther()
+        })
+      }
+
+      window.onload = function () {
+        getShipList()
+      }
+    </script>
+  </body>
+</html>
