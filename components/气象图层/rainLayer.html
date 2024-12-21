@@ -3,29 +3,34 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>航线动画</title>
+    <title>面雨量</title>
     <link rel="stylesheet" href="/demo.css" />
   </head>
   <body>
-    <div id="app">
-      <div id="map"></div>
-    </div>
-
+    <div id="map"></div>
     <script type="text/javascript" src="/libs/cme2d.js"></script>
     <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
     <script type="module">
-      import ShipRoute from '/public/libs/ShipRoute/ShipRoute.js'
-      const { Map: CMEMap, View, layer } = window.CME2D
-      const { Point } = window.CME2D.geom
-      const { Style, Stroke } = window.CME2D.style
+      import { addGeojsonLayer } from '/public/libs/rain-layer/geojsonCommon.js'
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers, style } = window.CMECore
       const { XYZ } = window.CME2D.source
       let map, measure, get_current_route
-      function initData() {
-        fetch('/cme/data/shipRoute/get_current_route_1.json')
+      function initData(map) {
+        fetch('/cme/data/json/cz.json')
           .then((res) => res.json())
           .then((res) => {
-            get_current_route = res
-            initMap()
+            console.log('res', res)
+            //面雨量的颜色 比如 数值是大于等于6小于15的颜色为'rgba(61,186,61,0.8)'
+            let color = [
+              [0, 'rgba(166,242,143,0.8)'],
+              [6, 'rgba(61,186,61,0.8)'],
+              [15, 'rgba(97,184,255,0.8)'],
+              [30, 'rgba(0,0,255,0.8)'],
+              [60, 'rgba(255,0,255,0.8)'],
+              [150, 'rgba(128,0,64,0.8)'],
+            ]
+            addGeojsonLayer(map, res, color)
           })
       }
       function initMap() {
@@ -40,35 +45,17 @@
           ],
           view: new View({
             //地图视图
-            center: [173, 35],
+            center: [92, 35],
             projection: 'EPSG:4326',
-            zoom: 3,
+            zoom: 5,
             wrapX: true,
           }), //地图设置
           controls: [], //取消地图操作
         })
-        const traveledStyle = new Style({
-          stroke: new Stroke({
-            color: 'rgba(51,153,204,1)',
-          }),
-        })
-        const notTraveledStyle = new Style({
-          stroke: new Stroke({
-            color: 'rgba(51,153,204,1)',
-            lineDash: [5, 5],
-          }),
-        })
-        const ship = new ShipRoute({
-          map,
-          traveledStyle,
-          notTraveledStyle,
-          imagePath: '/cme/images/ship-route/',
-        })
-
-        ship.render(get_current_route.data.list)
+        initData(map)
       }
       window.onload = function () {
-        initData()
+        initMap()
       }
     </script>
   </body>

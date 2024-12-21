@@ -14,18 +14,30 @@
     <script type="text/javascript" src="/libs/cme2d.js"></script>
     <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
     <script type="module">
-      import ShipRoute from '/public/libs/ShipRoute/ShipRoute.js'
+      import ShipRouteAnimation from '/public/libs/ShipRoute/ShipRouteAnimation.js'
       const { Map: CMEMap, View, layer } = window.CME2D
       const { Point } = window.CME2D.geom
       const { Style, Stroke } = window.CME2D.style
       const { XYZ } = window.CME2D.source
       let map, measure, get_current_route
-      function initData() {
-        fetch('/cme/data/shipRoute/get_current_route_1.json')
+      function initData(map) {
+        fetch('/cme/data/shipRouteAnimation/get_current_route.json')
           .then((res) => res.json())
           .then((res) => {
-            get_current_route = res
-            initMap()
+            const sra = new ShipRouteAnimation({
+              map,
+              width: 3,
+              width2: 10,
+              color: '#ff0000',
+              color2: '#ffffff',
+            })
+            sra.render(res.data.list)
+          })
+        fetch('/cme/data/shipRouteAnimation/get_current_route_1.json')
+          .then((res) => res.json())
+          .then((res) => {
+            const sra = new ShipRouteAnimation({ map })
+            sra.render(res.data.list)
           })
       }
       function initMap() {
@@ -47,28 +59,10 @@
           }), //地图设置
           controls: [], //取消地图操作
         })
-        const traveledStyle = new Style({
-          stroke: new Stroke({
-            color: 'rgba(51,153,204,1)',
-          }),
-        })
-        const notTraveledStyle = new Style({
-          stroke: new Stroke({
-            color: 'rgba(51,153,204,1)',
-            lineDash: [5, 5],
-          }),
-        })
-        const ship = new ShipRoute({
-          map,
-          traveledStyle,
-          notTraveledStyle,
-          imagePath: '/cme/images/ship-route/',
-        })
-
-        ship.render(get_current_route.data.list)
+        initData(map)
       }
       window.onload = function () {
-        initData()
+        initMap()
       }
     </script>
   </body>
