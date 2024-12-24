@@ -1,20 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>新型观测资料-微波辐射计-风廓线雷达</title>
-    <link rel="stylesheet" href="/public/demo.css" />
-    <link
-      rel="stylesheet"
-      href="/public/libs/cme-windoutline/cme-windoutline.css"
-    />
-    <script type="text/javascript" src="/public/libs/echartscopy.js"></script>
-    <script type="text/javascript" src="/public/libs/vue3.js"></script>
-    <script
-      type="text/javascript"
-      src="/public/libs/cme-windoutline/umd/cme-windoutline.js"
-    ></script>
+    <link rel="stylesheet" href="/demo.css" />
+    <link rel="stylesheet" href="/libs/cme-windoutline/cme-windoutline.css" />
+    <script type="text/javascript" src="/libs/echartscopy.js"></script>
+    <script type="text/javascript" src="/libs/vue3.js"></script>
+    <script type="text/javascript" src="/libs/cme-windoutline/umd/cme-windoutline.js"></script>
     <style>
       #app {
         width: 100%;
@@ -34,39 +28,39 @@
   </body>
   <script type="module">
     // import { WindOutline as WindOutline11 } from '/src/components/WindOutline/index.js'
-    import datas from '/public/data/microwaveRadiation/datas.js'
-    const { createApp, ref, reactive, onMounted } = Vue
+    import datas from "/public/data/microwaveRadiation/datas.js";
+    const { createApp, ref, reactive, onMounted } = Vue;
     const app = createApp({
       setup() {
-        const mapRef = ref(null) //地图实例
-        const chartRef = ref(null)
+        const mapRef = ref(null); //地图实例
+        const chartRef = ref(null);
 
         const station = reactive({
           lon: 117.52,
           lat: 36.65,
-          stationName: '章丘',
+          stationName: "章丘",
           stationId: 53463,
-        })
+        });
 
         const params = reactive({
-          startTime: '20240814110000',
-          endTime: '20240815110000',
-          elements: 'SPEED_H,DIRECTION_H',
+          startTime: "20240814110000",
+          endTime: "20240815110000",
+          elements: "SPEED_H,DIRECTION_H",
           staIds: 54727,
-        })
+        });
 
         onMounted(() => {
-          chartRef.value.setEchartsData(params, datas)
-        })
+          chartRef.value.setEchartsData(params, datas);
+        });
         return {
           chartRef,
           station,
-        }
+        };
       },
-    })
+    });
     // 注册TlogP组件
-    app.use(WindOutline.WindOutline)
+    app.use(WindOutline.WindOutline);
 
-    app.mount('#app')
+    app.mount("#app");
   </script>
 </html>

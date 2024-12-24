@@ -1,0 +1,385 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>色斑图在线调用</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <link rel="stylesheet" href="/libs/layui.css" />
+    <script type="text/javascript" src="/libs/flexible.min.js"></script>
+    <script type="text/javascript" src="/libs/layui.js"></script>
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <style>
+      #app {
+        position: absolute;
+        bottom: 0;
+        height: unset;
+        width: 420px;
+        padding: 10px;
+        border: 1px solid #cccccc;
+      }
+
+      .layui-form {
+        width: 400px;
+      }
+
+      .layui-form-item {
+        margin-bottom: 0;
+      }
+
+      .center {
+        margin-top: 8px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .layui-input-block {
+        display: flex;
+        align-items: center;
+      }
+
+      .layui-input-block.v {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        align-items: center;
+        max-height: 240px;
+        overflow-y: auto;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        height: 28px;
+      }
+
+      .layui-form-label {
+        height: 32px;
+        padding: 0 8px;
+        line-height: 32px;
+      }
+
+      .layui-input.mini {
+        display: inline-block;
+        height: 24px;
+        width: 36px;
+        padding: 0 2px;
+        margin-right: 12px;
+        margin-left: 4px;
+      }
+
+      .layui-btn-sm {
+        height: 24px;
+        display: flex;
+        align-items: center;
+
+        i {
+          display: block;
+          width: 10px;
+          height: 14px;
+          line-height: 14px;
+        }
+      }
+
+      .layui-anim dd,
+      .layui-form-select,
+      .layui-select-title {
+        height: 24px;
+      }
+
+      .layui-form-select dl {
+        top: 24px !important;
+      }
+
+      .layui-input,
+      input {
+        height: 24px;
+        flex: 1;
+      }
+
+      .w60 {
+        width: 36px;
+        text-align: center;
+      }
+
+      input::-webkit-inner-spin-button,
+      input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      /* 兼容Firefox */
+      input[type='number'] {
+        -moz-appearance: textfield;
+      }
+      .tool {
+        position: fixed;
+        left: 0px;
+        top: 0px;
+        z-index: 100;
+        background-color: #fff;
+        padding: 10px;
+      }
+      .tool > div label {
+        float: left;
+      }
+      #url {
+        width: 600px;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <div class="tool layui-form popbox">
+      <div class="layui-form-item">
+        <label for="url" class="layui-form-label">接口地址</label>
+        <div class="layui-input-block">
+          <input
+            type="text"
+            id="url"
+            class="layui-input"
+            value="http://10.20.107.239:864/cmes-102064109/NAFP/CMA_MESO_FOR_CHN/2024/2024-12-05/241205103453036072_CMA_MESO_FOR_CHN_RH_20241205000000_72_100_100000_10-20-64-109.tif"
+          />
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label for="textarea" class="layui-form-label">图例</label>
+        <div class="layui-input-block">
+          <textarea id="textarea" cols="50" rows="10">
+            [
+              [0, [173, 85, 56, 1]],
+              [30, [173, 110, 56, 1]],
+              [40, [173, 146, 56, 1]],
+              [50, [105, 173, 56, 1]],
+              [60, [56, 173, 121, 1]],
+              [70, [56, 174, 173, 1]],
+              [75, [56, 160, 173, 1]],
+              [80, [56, 157, 173, 1]],
+              [83, [56, 148, 173, 1]],
+              [87, [56, 135, 173, 1]],
+              [90, [56, 132, 173, 1]],
+              [93, [56, 123, 173, 1]],
+              [97, [56, 98, 157, 1]],
+              [100, [56, 70, 114, 1]]
+            ]
+        </textarea
+          >
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label for="opacity" class="layui-form-label">透明度</label>
+        <div class="layui-input-block">
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            id="opacity"
+            value="1"
+          />
+          <span style="margin-left: 10px" id="opacityValue">1</span>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label for="xrfa" class="layui-form-label">渲染方案</label>
+        <div class="layui-input-block">
+          <select name="xrfa" id="xrfa">
+            <option value="linear">线性插值</option>
+            <option value="nearest">最临近插值</option>
+            <option value="grid">网格</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item">
+        <label for="showValue" class="layui-form-label">显示数值</label>
+        <div class="layui-input-block">
+          <select name="showValue" id="showValue">
+            <option value="1">显示</option>
+            <option value="0">隐藏</option>
+          </select>
+        </div>
+      </div>
+      <div class="layui-form-item center">
+        <button class="layui-btn layui-btn-sm" id="btn">更新图层</button>
+      </div>
+    </div>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers, style } = window.CMECore
+      let colorsEl = document.getElementById('textarea')
+      let tifUrlEl = document.getElementById('url')
+      let interpolationEl = document.getElementById('xrfa')
+      let opacityEl = document.getElementById('opacity')
+      let showValueEl = document.getElementById('showValue')
+      let opacityValueEl = document.getElementById('opacityValue')
+      opacityEl.addEventListener('input', function (val) {
+        opacityValueEl.innerText = val.target.value
+      })
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      function onRun() {
+        // 请求新数据之前删除旧图层
+        if (tiffLayers?.cogLayer) {
+          mapObj.removeLayer(tiffLayers.cogLayer)
+        }
+        if (tiffLayers?.gridLayer) {
+          mapObj.removeLayer(tiffLayers.gridLayer)
+        }
+        let colors = colorsEl.value
+        let tifUrl = tifUrlEl.value
+        let interpolation = interpolationEl.value
+        let opacity = opacityEl.value
+        let showValue = showValueEl.value
+        singKleLayer(mapObj, tifUrl, {
+          interpolation,
+          opacity: Number(opacity),
+          showValue,
+          colors: JSON.parse(colors),
+        })
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 4.6,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          onRun()
+        })
+        document.getElementById('btn').onclick = function () {
+          onRun()
+        }
+      }
+      function singKleLayer(map, url, config) {
+        // 获取凤羽图的配置参数
+        const params = getsingleKConfig(config)
+        // 获取文本配置参数
+        const paramstext = getTextCogtig()
+        // 获取箭头配置参数
+        //  const paramsArrow=getArrowConfig();
+        tiffLayers = new blendLayers(map, {
+          url: url,
+          metadata: {
+            scale: 1, // 缩放比例
+            offset: 0, //偏移量
+          },
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            layer.setOpacity(config.opacity)
+            map.addLayer(layer)
+          })
+          // 绘制网格值
+          if (config.showValue === '1') {
+            tiffLayers.addTextLayer(paramstext).then((layer) => {
+              let option = {
+                gridLayer: {
+                  range: {
+                    min: 10,
+                    max: 20,
+                  },
+                },
+              }
+              map.addLayer(layer)
+            })
+          }
+        })
+      }
+
+      function getsingleKConfig(config) {
+        let params = {
+          layerName: 'cogtifLayer',
+          opacity: config.opacity ?? 1.0,
+          interpolation: config.interpolation || 'linear', // 渐变 linear  区间 nearest  网格 grid
+          zIndex: 14,
+          colors: config.colors || [
+            [0, [173, 85, 56, 1]],
+            [30, [173, 110, 56, 1]],
+            [40, [173, 146, 56, 1]],
+            [50, [105, 173, 56, 1]],
+            [60, [56, 173, 121, 1]],
+            [70, [56, 174, 173, 1]],
+            [75, [56, 160, 173, 1]],
+            [80, [56, 157, 173, 1]],
+            [83, [56, 148, 173, 1]],
+            [87, [56, 135, 173, 1]],
+            [90, [56, 132, 173, 1]],
+            [93, [56, 123, 173, 1]],
+            [97, [56, 98, 157, 1]],
+            [100, [56, 70, 114, 1]],
+          ],
+        }
+        return params
+      }
+
+      function getTextCogtig() {
+        let params = {
+          layerName: 'textLayer',
+          type: 'grid',
+          layerName: 'textLayer', //文本图层的图层名字,默认是栅格数据id名称加上_Text
+          precision: 1, //格网数据显示的小数点的精度
+          opacity: 1, //透明度
+          zIndex: 200, //图层层级
+          distanceArrow: 80, //距离
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: '18px Calibri,sans-serif',
+                  fill: {
+                    Fill: {
+                      color: '#000000',
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: '#ffffff',
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }
+
+        return params
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>

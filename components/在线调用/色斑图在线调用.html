@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>色斑图在线调用</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <link rel="stylesheet" href="/libs/layui.css" />
+    <script type="text/javascript" src="/libs/flexible.min.js"></script>
+    <script type="text/javascript" src="/libs/vue3.js"></script>
+    <!-- <script type="text/javascript" src="/libs/layui.js"></script> -->
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <style type="text/css">
+      #app {
+        position: absolute;
+        bottom: 0;
+        height: unset;
+        width: 460px;
+        padding: 10px;
+        border: 1px solid #cccccc;
+      }
+
+      .layui-form {
+        width: 420px;
+      }
+
+      .layui-form-item {
+        margin-bottom: 0;
+      }
+
+      .center {
+        margin-top: 8px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .layui-input-block {
+        display: flex;
+        align-items: center;
+      }
+
+      .layui-input-block.v {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        align-items: center;
+        max-height: 240px;
+        overflow-y: auto;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        height: 28px;
+      }
+
+      .layui-form-label {
+        height: 32px;
+        padding: 0 8px;
+        line-height: 32px;
+      }
+
+      .layui-input.mini {
+        display: inline-block;
+        height: 24px;
+        width: 36px;
+        padding: 0 2px;
+        margin-right: 12px;
+        margin-left: 4px;
+      }
+
+      .layui-btn-sm {
+        height: 24px;
+        display: flex;
+        align-items: center;
+
+        i {
+          display: block;
+          width: 10px;
+          height: 14px;
+          line-height: 14px;
+        }
+      }
+
+      .layui-form select {
+        display: block !important;
+        width: 280px;
+        height: 24px;
+        border-radius: 2px;
+        cursor: pointer;
+        border: 1px solid #eee !important;
+      }
+
+      .layui-input,
+      input {
+        height: 24px;
+        flex: 1;
+      }
+
+      .w60 {
+        width: 36px;
+        text-align: center;
+      }
+
+      input::-webkit-inner-spin-button,
+      input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      /* 兼容Firefox */
+      input[type='number'] {
+        -moz-appearance: textfield;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <div id="app">
+      <div class="layui-form popbox">
+        <template v-if="showModel">
+          <div class="layui-form-item">
+            <label class="layui-form-label">路径</label>
+            <div class="layui-input-block">
+              <input v-model="dataUrl" type="text" class="layui-input" />
+            </div>
+          </div>
+          <div class="layui-form-item">
+            <label class="layui-form-label">透明度</label>
+            <div class="layui-input-block">
+              <input
+                v-model="opacity"
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+              />
+              <label class="w60">{{opacity}}</label>
+            </div>
+          </div>
+          <div class="layui-form-item">
+            <label class="layui-form-label">渲染方式</label>
+            <div class="layui-input-block">
+              <select v-model="interpolation" class="layui-select layout-input">
+                <option value="linear">线性插值</option>
+                <option value="nearest">最临近插值</option>
+                <option value="grid">网格</option>
+              </select>
+            </div>
+          </div>
+          <div class="layui-form-item">
+            <label class="layui-form-label">图例</label>
+            <div class="layui-input-block v">
+              <div class="legend-item" v-for="(item, idx) in colors">
+                <label
+                  >值<input
+                    v-model="item[0]"
+                    type="number"
+                    lay-verify="required"
+                    class="layui-input mini"
+                /></label>
+                <label
+                  >R<input
+                    v-model="item[1][0]"
+                    type="number"
+                    lay-verify="required"
+                    class="layui-input mini"
+                /></label>
+                <label
+                  >G<input
+                    v-model="item[1][1]"
+                    type="number"
+                    lay-verify="required"
+                    class="layui-input mini"
+                /></label>
+                <label
+                  >B<input
+                    v-model="item[1][2]"
+                    type="number"
+                    lay-verify="required"
+                    class="layui-input mini"
+                /></label>
+                <button
+                  class="layui-btn layui-btn-primary layui-btn-sm"
+                  @click="handleClick(idx)"
+                >
+                  <i>{{ idx ? '-' : '+' }}</i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <div class="layui-form-item center">
+          <button class="layui-btn layui-btn-sm" @click="handleCloseModel">
+            {{ !showModel ? '打开' : '关闭'}}设置
+          </button>
+          <button
+            class="layui-btn layui-btn-sm"
+            @click="onSubmit"
+            v-show="showModel"
+          >
+            更新图层
+          </button>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              preload: Infinity, //开启预加载模式
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png ', // 内网地址
+                // url: 'http://111.205.114.224:8080/windy/{z}/{x}/{y}.png'   // 外网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      const mapObj = initMap(document.querySelector('#map'))
+
+      const { createApp, ref, onMounted } = Vue
+      const app = createApp({
+        setup() {
+          const colors = ref([
+            [0, [173, 85, 56, 1]],
+            [30, [173, 110, 56, 1]],
+            [40, [173, 146, 56, 1]],
+            [50, [105, 173, 56, 1]],
+            [60, [56, 173, 121, 1]],
+            [70, [56, 174, 173, 1]],
+            [75, [56, 160, 173, 1]],
+            [80, [56, 157, 173, 1]],
+            [83, [56, 148, 173, 1]],
+            [87, [56, 135, 173, 1]],
+            [90, [56, 132, 173, 1]],
+            [93, [56, 123, 173, 1]],
+            [97, [56, 98, 157, 1]],
+            [100, [56, 70, 114, 1]],
+          ])
+          const dataUrl = ref(
+            'http://10.20.107.239:864/cmes-102064109/NAFP/CMA_MESO_FOR_CHN/2024/2024-12-05/241205103453036072_CMA_MESO_FOR_CHN_RH_20241205000000_72_100_100000_10-20-64-109.tif',
+          )
+          const opacity = ref(1.0)
+          const interpolation = ref('linear')
+
+          const { blendLayers } = window.CMECore
+          let layers = new blendLayers(mapObj, { url: dataUrl.value })
+          console.log(layers)
+          function handleClick(idx) {
+            if (idx) {
+              colors.value.splice(idx, 1)
+              return
+            }
+            colors.value.add([0, [0, 0, 0]])
+          }
+
+          function loadCogLayer() {
+            const params = {
+              opacity: +opacity.value,
+              interpolation: interpolation.value,
+              colors: colors.value,
+            }
+            layers._render(params).then((object) => {
+              layers.addCogeoLayer(params).then((layer) => {
+                mapObj.addLayer(layer)
+              })
+            })
+          }
+
+          const showModel = ref(false)
+          function handleCloseModel() {
+            showModel.value = !showModel.value
+          }
+
+          function onSubmit() {
+            if (layers.cogLayer) {
+              mapObj.removeLayer(layers.cogLayer)
+            }
+            const params = {
+              opacity: +opacity.value,
+              interpolation: interpolation.value,
+              colors: colors.value,
+            }
+            console.log('params ==>', params)
+            layers.addCogeoLayer(params).then((layer) => {
+              layer.setOpacity(params.opacity)
+              mapObj.addLayer(layer)
+            })
+          }
+          onMounted(loadCogLayer)
+          return {
+            colors,
+            dataUrl,
+            opacity,
+            interpolation,
+            handleClick,
+            onSubmit,
+            showModel,
+            handleCloseModel,
+          }
+        },
+      })
+      app.mount('#app')
+    </script>
+  </body>
+</html>

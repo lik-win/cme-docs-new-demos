@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>等值线在线调用</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <link rel="stylesheet" href="/libs/layui.css" />
+    <script type="text/javascript" src="/libs/flexible.min.js"></script>
+    <script type="text/javascript" src="/libs/vue3.js"></script>
+    <!-- <script type="text/javascript" src="/libs/layui.js"></script> -->
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <style type="text/css">
+      #app {
+        position: absolute;
+        bottom: 0;
+        height: unset;
+        width: 460px;
+        padding: 10px;
+        border: 1px solid #cccccc;
+      }
+
+      .layui-form {
+        width: 420px;
+      }
+
+      .layui-form-item {
+        margin-bottom: 0;
+      }
+
+      .center {
+        margin-top: 8px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .layui-input-block {
+        display: flex;
+        align-items: center;
+      }
+
+      .layui-input-block.v {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+        align-items: center;
+        max-height: 240px;
+        overflow-y: auto;
+      }
+
+      .legend-item {
+        display: flex;
+        align-items: center;
+        height: 28px;
+      }
+
+      .layui-form-label {
+        height: 32px;
+        padding: 0 8px;
+        line-height: 32px;
+      }
+
+      .layui-input.mini {
+        display: inline-block;
+        height: 24px;
+        width: 36px;
+        padding: 0 2px;
+        margin-right: 12px;
+        margin-left: 4px;
+      }
+
+      .layui-btn-sm {
+        height: 24px;
+        display: flex;
+        align-items: center;
+
+        i {
+          display: block;
+          width: 10px;
+          height: 14px;
+          line-height: 14px;
+        }
+      }
+
+      .layui-form select {
+        display: block !important;
+        width: 280px;
+        height: 24px;
+        border-radius: 2px;
+        cursor: pointer;
+        border: 1px solid #eee !important;
+      }
+
+      .layui-input,
+      input {
+        height: 24px;
+        flex: 1;
+      }
+
+      .w60 {
+        width: 36px;
+        text-align: center;
+      }
+
+      input::-webkit-inner-spin-button,
+      input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
+
+      /* 兼容Firefox */
+      input[type='number'] {
+        -moz-appearance: textfield;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <div id="app">
+      <div class="layui-form popbox">
+        <div class="layui-form-item">
+          <label class="layui-form-label">路径</label>
+          <div class="layui-input-block">
+            <input v-model="dataUrl" type="text" class="layui-input" />
+          </div>
+        </div>
+      </div>
+      <button class="layui-btn layui-btn-sm" @click="onSubmit">更新图层</button>
+    </div>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              preload: Infinity, //开启预加载模式
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png ', // 内网地址
+                // url: 'http://111.205.114.224:8080/windy/{z}/{x}/{y}.png'   // 外网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      const mapObj = initMap(document.querySelector('#map'))
+
+      const { createApp, ref, onMounted } = Vue
+      const app = createApp({
+        setup() {
+          const dataUrl = ref(
+            'http://10.20.107.239:864/cmes-102064109/NAFP/CMA_MESO_FOR_CHN/2024/2024-12-05/241206005928813321_CMA_MESO_FOR_CHN_GHT_20241205120000_72_100_85000_10-20-64-109.json',
+          )
+          let layerObj = null
+
+          const { contourLayer } = window.CMECore
+
+          async function addIsoLineLayer(mapObj, url) {
+            let params = {
+              zIndex: 1000,
+              // 图层配置
+              colorRamp: [
+                [500, 'rgba(0, 0, 255, 1)'], // 大蓝
+                [510, 'rgba(20, 40, 255, 1)'], // 深蓝
+                [520, 'rgba(50, 80, 255, 1)'], // 中蓝
+                [530, 'rgba(255, 0, 0, 1)'], // 大红
+                [540, 'rgba(255, 50, 50, 1)'], // 红
+                [550, 'rgba(180, 0, 255, 1)'], // 大紫
+                [560, 'rgba(150, 0, 180, 1)'], // 紫
+                [570, 'rgba(100, 0, 140, 1)'], // 深紫
+                [590, 'rgba(255, 105, 180, 1)'], // 熏衣草粉
+              ],
+              minZoom: 6,
+              maxZoom: 20,
+              // 设置等值线样式
+              lineStyle: {
+                // 是否使用图例
+                useColorRamp: false,
+                color: 'rgba(0,0,200,1)',
+
+                special: [
+                  {
+                    value: 580,
+                    width: 10,
+                    color: '#ffff00',
+                  },
+                  {
+                    value: 560,
+                    width: 5,
+                    color: '#ff0000',
+                  },
+                ],
+                //等值线值对应的字段
+                textValue: 'level-value',
+                //等值线值对应的颜色
+                fontColor: '#ffffff',
+                //等值线值对应的大小
+                fontSize: 35,
+                // 是否显示标签
+                showLabel: true,
+                fontBackColor: 'rgba(50, 80, 255, 1)',
+              },
+              // 设置等值线标签样式
+              lineLabelStyle: {
+                useColorRamp: false, //是否使用渐变颜色的渲染文字的背景框
+                //等值线值对应的颜色
+                fontColor: '#000000',
+                //等值线值对应的大小
+                fontSize: 40,
+                // 标签背景颜色
+                fontBackColor: 'transparent',
+                //文字的背景框颜色
+              },
+              // 设置极值点样式
+              extremeStyle: {
+                // 是否使用图例
+                // useColorRamp: false,
+                // 是否显示标签
+                showLabel: true,
+                // textValue: 'value',
+                fontSize: 10,
+              },
+              projection:
+                mapObj.getView().getProjection().getCode() || 'EPSG:3857',
+            }
+
+            layerObj = new contourLayer(mapObj, params)
+            layerObj.setZIndex(20)
+            mapObj.addLayer(layerObj)
+            await layerObj.loadGeojson(url)
+          }
+
+          function onSubmit() {
+            if (layerObj) {
+              mapObj.removeLayer(layerObj)
+            }
+            addIsoLineLayer(mapObj, dataUrl.value)
+          }
+          onMounted(onSubmit)
+          return {
+            dataUrl,
+            onSubmit,
+          }
+        },
+      })
+      app.mount('#app')
+    </script>
+  </body>
+</html>
