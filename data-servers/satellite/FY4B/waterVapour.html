@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据服务-卫星资料-FY4B-水汽</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript" src="/libs/dayjs.js"></script>
+    <script type="text/javascript">
+      const apiInfo = {
+        url: '/cmes-base-fileservice/file/v1/manage/sate/getCogTif',
+        args: {
+          dataType: {
+            value: 'NSMC_FY4B_AGRI_L1_GLB',
+            type: 'string',
+            required: true,
+            desc: '资料代码',
+          },
+          loadType: {
+            value: 'AGRI',
+            type: 'string',
+            required: true,
+            desc: '载荷类型',
+          },
+          frequency: {
+            value: '4000M',
+            type: 'string',
+            required: true,
+            desc: '观测频次',
+          },
+          band: {
+            value: 'BT_Channel10',
+            type: 'string',
+            required: true,
+            desc: '通道',
+          },
+          time: {
+            value: '20241217000000',
+            type: 'string',
+            required: true,
+            desc: '时间',
+          },
+        },
+      }
+
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers } = window.CMECore
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      function onRun(params) {
+        // 请求新数据之前删除旧图层
+        if (tiffLayers) {
+          mapObj.removeLayer(tiffLayers)
+        }
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/sate/getCogTif?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
+              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+              let tifUrl =
+                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+              singKleLayer(mapObj, tifUrl)
+            }
+          })
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 4.6,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          const params = {
+            dataType: 'NSMC_FY4B_AGRI_L1_GLB',
+            loadType: 'AGRI',
+            frequency: '4000M',
+            band: 'BT_Channel10',
+            time: '20241217000000',
+          }
+          getTimeList(params)
+        })
+      }
+      
+      // 获取时间列表
+      function getTimeList(params, tifUrl) {
+        params.startTime = dayjs().format('YYYYMMDD080000')
+        const url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/sate/getCogTifTimes?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              // 获取到时间列表之后，只拿第一个时间
+              const startTime = res.data[0]
+              params.time = startTime
+              // 请求完成之后，删除多余的参数
+              delete params.startTime
+              if (window.postParams) {
+                window.postParams({
+                  time: params.time,
+                })
+              }
+              onRun(params)
+            }
+          })
+      }
+
+      function singKleLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getsingleKConfig()
+        // 获取文本配置参数
+        const paramstext = getTextCogtig()
+        tiffLayers = new blendLayers(map, {
+          url: url,
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer)
+          })
+          // 绘制网格值
+          // tiffLayers.addTextLayer(paramstext).then((layer) => {
+          //   let option = {
+          //     gridLayer: {
+          //       range: {
+          //         min: 10,
+          //         max: 20,
+          //       },
+          //     },
+          //   }
+          //   map.addLayer(layer)
+          // })
+        })
+      }
+
+      function getsingleKConfig() {
+        let params = {
+          layerName: 'cogtifLayer',
+          opacity: 1.0,
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
+          zIndex: 14,
+          colors: [
+            [159.999, [255, 255, 255, 0]],
+            [160, [255, 255, 255]],
+            [161, [253, 253, 253]],
+            [162, [251, 251, 251]],
+            [163, [249, 249, 249]],
+            [164, [247, 247, 247]],
+            [165, [245, 245, 245]],
+            [166, [243, 243, 243]],
+            [167, [241, 241, 241]],
+            [168, [239, 239, 239]],
+            [169, [237, 237, 237]],
+            [170, [235, 235, 235]],
+            [171, [233, 233, 233]],
+            [172, [231, 231, 231]],
+            [173, [229, 229, 229]],
+            [174, [227, 227, 227]],
+            [175, [225, 225, 225]],
+            [176, [223, 223, 223]],
+            [177, [221, 221, 221]],
+            [178, [219, 219, 219]],
+            [179, [217, 217, 217]],
+            [180, [215, 215, 215]],
+            [181, [213, 213, 213]],
+            [182, [211, 211, 211]],
+            [183, [209, 209, 209]],
+            [184, [207, 207, 207]],
+            [185, [205, 205, 205]],
+            [186, [203, 203, 203]],
+            [187, [201, 201, 201]],
+            [188, [199, 199, 199]],
+            [189, [197, 197, 197]],
+            [190, [195, 195, 195]],
+            [191, [193, 193, 193]],
+            [192, [191, 191, 191]],
+            [193, [189, 189, 189]],
+            [194, [187, 187, 187]],
+            [195, [185, 185, 185]],
+            [196, [183, 183, 183]],
+            [197, [181, 181, 181]],
+            [198, [179, 179, 179]],
+            [199, [177, 177, 177]],
+            [200, [175, 175, 175]],
+            [201, [173, 173, 173]],
+            [202, [171, 171, 171]],
+            [203, [169, 169, 169]],
+            [204, [167, 167, 167]],
+            [205, [165, 165, 165]],
+            [206, [163, 163, 163]],
+            [207, [161, 161, 161]],
+            [208, [159, 159, 159]],
+            [209, [157, 157, 157]],
+            [210, [155, 155, 155]],
+            [211, [153, 153, 153]],
+            [212, [151, 151, 151]],
+            [213, [149, 149, 149]],
+            [214, [147, 147, 147]],
+            [215, [145, 145, 145]],
+            [216, [143, 143, 143]],
+            [217, [141, 141, 141]],
+            [218, [139, 139, 139]],
+            [219, [137, 137, 137]],
+            [220, [135, 135, 135]],
+            [221, [133, 133, 133]],
+            [222, [131, 131, 131]],
+            [223, [129, 129, 129]],
+            [224, [127, 127, 127]],
+            [225, [125, 125, 125]],
+            [226, [123, 123, 123]],
+            [227, [121, 121, 121]],
+            [228, [119, 119, 119]],
+            [229, [117, 117, 117]],
+            [230, [115, 115, 115]],
+            [231, [113, 113, 113]],
+            [232, [111, 111, 111]],
+            [233, [109, 109, 109]],
+            [234, [107, 107, 107]],
+            [235, [105, 105, 105]],
+            [236, [103, 103, 103]],
+            [237, [101, 101, 101]],
+            [238, [99, 99, 99]],
+            [239, [97, 97, 97]],
+            [240, [95, 95, 95]],
+            [241, [93, 93, 93]],
+            [242, [91, 91, 91]],
+            [243, [89, 89, 89]],
+            [244, [87, 87, 87]],
+            [245, [85, 85, 85]],
+            [246, [83, 83, 83]],
+            [247, [81, 81, 81]],
+            [248, [79, 79, 79]],
+            [249, [77, 77, 77]],
+            [250, [75, 75, 75]],
+            [251, [73, 73, 73]],
+            [252, [71, 71, 71]],
+            [253, [69, 69, 69]],
+            [254, [67, 67, 67]],
+            [255, [65, 65, 65]],
+            [256, [63, 63, 63]],
+            [257, [61, 61, 61]],
+            [258, [59, 59, 59]],
+            [259, [57, 57, 57]],
+            [260, [55, 55, 55]],
+            [299, [6, 6, 6]],
+            [999, [0, 0, 0]],
+            [9999, [0, 0, 0]],
+            [9999.001, [0, 0, 0, 0]],
+          ],
+        }
+        return params
+      }
+
+      function getTextCogtig() {
+        let params = {
+          layerName: 'textLayer',
+          type: 'grid',
+          layerName: 'textLayer', //文本图层的图层名字,默认是栅格数据id名称加上_Text
+          precision: 1, //格网数据显示的小数点的精度
+          opacity: 1, //透明度
+          zIndex: 200, //图层层级
+          distanceArrow: 80, //距离
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: '18px Calibri,sans-serif',
+                  fill: {
+                    Fill: {
+                      color: '#000000',
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: '#ffffff',
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }
+
+        return params
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>

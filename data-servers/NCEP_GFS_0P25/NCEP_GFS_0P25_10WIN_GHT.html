@@ -55,6 +55,55 @@
         },
       }
 
+      const ip = 'http://10.20.107.239:888'
+
+      // 获取时间列表
+      function getTimeList(params) {
+        const url = `${ip}/cmes-base-fileservice/file/v1/manage/mode/getCogTifStartTimes?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              // 获取到时间列表之后，只拿第一个时间
+              const startTime = res.data[0]
+              params.startTime = startTime
+              getLatestTime(params)
+            }
+          })
+      }
+
+      // 获取最新时间
+      function getLatestTime(params) {
+        const url = `${ip}/cmes-base-fileservice/file/v1/manage/mode/getCogTifForecastTimes?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data && res.data.length) {
+              const latestTime = res.data[0]
+              params.forecastTime = latestTime
+              if (params.element === 'WIN') {
+                if (window.postParams) {
+                  window.postParams({
+                    startTime: params.startTime,
+                    forecastTime: params.forecastTime,
+                  })
+                }
+              }
+              onRun(params)
+            }
+          })
+      }
+
       const { Map: CMEMap, View, source, layer } = window.CME2D
       const { blendLayers, contourLayer } = window.CMECore
       // 作为全局对象保存
@@ -79,39 +128,33 @@
         if (tiffLayers?.arrowLayer) {
           mapObj.removeLayer(tiffLayers.arrowLayer)
         }
-        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTiff?${handleQueryString(params)}`
-        fetch(url, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        })
-          .then((res) => res.json())
-          .then((res) => {
-            if (res.data) {
-              if (window.postResult) {
-                window.postResult(res)
-              }
-              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
-              let tifUrl =
-                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
-              singKleLayer(mapObj, tifUrl)
-            }
+        if (params.element === 'WIN') {
+          let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTiff?${handleQueryString(params)}`
+          fetch(url, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            },
           })
-        initIsoLine(mapObj, params)
+            .then((res) => res.json())
+            .then((res) => {
+              if (res.data) {
+                if (window.postResult) {
+                  window.postResult(res)
+                }
+                let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+                let tifUrl =
+                  'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+                singKleLayer(mapObj, tifUrl)
+              }
+            })
+        } else if (params.element === 'HGT') {
+          initIsoLine(mapObj, params)
+        }
       }
 
       function initIsoLine(map, params) {
-        let isolineParams = {
-          dataCode: 'NCEP_GFS_0P25_FOR_GLB',
-          element: 'HGT',
-          levelType: 100,
-          level: 85000,
-          startTime: '20241205000000',
-          forecastTime: 234,
-        }
-
-        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getIsoLine?${handleQueryString(isolineParams)}`
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getIsoLine?${handleQueryString(params)}`
         fetch(url, {
           method: 'GET',
           headers: {
@@ -158,17 +201,21 @@
         const mapEl = document.querySelector('#map')
         mapObj = initMap(mapEl)
         mapObj.once('postrender', function () {
-          const params = {
+          getTimeList({
             dataCode: 'NCEP_GFS_0P25_FOR_GLB',
             element: 'WIN',
             levelType: 103,
             level: 10,
-            startTime: '20241205000000',
-            forecastTime: 234,
-          }
-          onRun(params)
+          })
+          getTimeList({
+            dataCode: 'NCEP_GFS_0P25_FOR_GLB',
+            element: 'HGT',
+            levelType: 100,
+            level: 85000,
+          })
         })
       }
+
       function singKleLayer(map, url) {
         // 获取凤羽图的配置参数
         const params = getMultiConfig()

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>X波段雷达-反射率</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers, style } = window.CMECore
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      function onRun() {
+        singKleLayer(mapObj, '/data/radar/X波段雷达反射率.tif')
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [116.29544103346185, 39.52810351644879],
+            projection: 'EPSG:4326',
+            zoom: 9,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        window.postClose && window.postClose()
+        mapObj.once('postrender', function () {
+          onRun()
+        })
+      }
+      function singKleLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getsingleConfig()
+        tiffLayers = new blendLayers(map, {
+          url: url,
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer)
+          })
+        })
+      }
+
+      function getsingleConfig() {
+        let params = {
+          layerName: 'cogtifLayer',
+          opacity: 1.0,
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
+          zIndex: 14,
+          colors: [
+            [0, [0, 161, 247, 0]],
+            [10, [0, 161, 247, 1]],
+            [12, [0, 175, 244, 1]],
+            [14, [0, 190, 242, 1]],
+            [16, [0, 222, 0, 1]],
+            [18, [0, 206, 0, 1]],
+            [20, [0, 190, 0, 1]],
+            [22, [0, 178, 0, 1]],
+            [24, [0, 166, 0, 1]],
+            [26, [0, 154, 0, 1]],
+            [28, [0, 143, 0, 1]],
+            [30, [255, 255, 0, 1]],
+            [32, [251, 243, 0, 1]],
+            [34, [247, 230, 0, 1]],
+            [36, [243, 217, 0, 1]],
+            [38, [241, 203, 0, 1]],
+            [40, [245, 190, 0, 1]],
+            [42, [249, 177, 0, 1]],
+            [44, [253, 163, 0, 1]],
+            [46, [251, 172, 172, 1]],
+            [48, [243, 172, 172, 1]],
+            [50, [255, 100, 92, 1]],
+            [52, [247, 100, 92, 1]],
+            [54, [239, 100, 92, 1]],
+            [56, [234, 2, 48, 1]],
+            [58, [226, 2, 48, 1]],
+            [60, [235, 0, 195, 1]],
+            [62, [203, 0, 191, 1]],
+            [64, [171, 0, 187, 1]],
+            [66, [159, 30, 195, 1]],
+            [68, [164, 90, 218, 1]],
+            [70, [173, 145, 241, 1]],
+          ],
+        }
+        return params
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>

@@ -53,7 +53,7 @@
           },
         },
       }
-
+      const ip = 'http://10.20.107.239:888'
       const { Map: CMEMap, View, source, layer } = window.CME2D
       const { blendLayers, style } = window.CMECore
       // 作为全局对象保存
@@ -67,6 +67,51 @@
         return str.slice(0, -1)
       }
 
+      // 获取时间列表
+      function getTimeList(params) {
+        const url = `${ip}/cmes-base-fileservice/file/v1/manage/mode/getCogTifStartTimes?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              // 获取到时间列表之后，只拿第一个时间
+              const startTime = res.data[0]
+              params.startTime = startTime
+              getLatestTime(params)
+            }
+          })
+      }
+
+      // 获取最新时间
+      function getLatestTime(params) {
+        const url = `${ip}/cmes-base-fileservice/file/v1/manage/mode/getCogTifForecastTimes?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data && res.data.length) {
+              const latestTime = res.data[res.data.length - 1]
+              params.forecastTime = latestTime
+              if (window.postParams) {
+                window.postParams({
+                  startTime: params.startTime,
+                  forecastTime: params.forecastTime,
+                })
+              }
+              onRun(params)
+            }
+          })
+      }
+
       function onRun(params) {
         // 请求新数据之前删除旧图层
         if (tiffLayers?.cogLayer) {
@@ -75,7 +120,7 @@
         if (tiffLayers?.gridLayer) {
           mapObj.removeLayer(tiffLayers.gridLayer)
         }
-        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTiff?${handleQueryString(params)}`
+        let url = `${ip}/cmes-base-fileservice/file/v1/manage/mode/getCogTiff?${handleQueryString(params)}`
         fetch(url, {
           method: 'GET',
           headers: {
@@ -128,10 +173,10 @@
             element: 'RH',
             levelType: 100,
             level: 100000,
-            startTime: '20241205000000',
-            forecastTime: 72,
+            // startTime: '20241205000000',
+            // forecastTime: 72,
           }
-          onRun(params)
+          getTimeList(params)
         })
       }
       function singKleLayer(map, url) {

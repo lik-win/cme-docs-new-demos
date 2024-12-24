@@ -130,9 +130,58 @@
             startTime: "20241205000000",
             forecastTime: 36,
           };
-          onRun(params);
+          getTimeList(params);
         });
       };
+      
+      // 获取时间列表
+      function getTimeList(params) {
+        const url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTifStartTimes?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              console.log(res.data, 'res.data')
+              // 获取到时间列表之后，只拿第一个时间
+              const startTime = res.data[0]
+              params.startTime = startTime
+              
+              getLatestTime(params)
+            }
+          })
+      }
+
+      // 获取最新时间
+      function getLatestTime(params) {
+        const url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getCogTifForecastTimes?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data && res.data.length) {
+              console.log(res.data, 'res.data')
+              const latestTime = res.data[res.data.length - 1]
+              params.forecastTime = latestTime
+              if (window.postParams) {
+                window.postParams({
+                  startTime: params.startTime,
+                  forecastTime: params.forecastTime,
+                })
+              }
+              onRun(params)
+            }
+          })
+      }
+
       function singKleLayer(map, url) {
         // 获取凤羽图的配置参数
         const params = getsingleKConfig();

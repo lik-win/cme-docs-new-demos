@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据服务-CMA区域模式(1KM)-位势高度</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers, contourLayer } = window.CMECore
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      function initIsoLine(map) {
+        let isolineParams = {
+          dataCode: 'CMA_MESO_1KM_FOR_CHN',
+          element: 'GHT',
+          levelType: 100,
+          level: 85000,
+          startTime: '20241205000000',
+          forecastTime: 68,
+        }
+
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/mode/getIsoLine?${handleQueryString(isolineParams)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+              let tifUrl =
+                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+              addIsoLineLayer(mapObj, tifUrl)
+            }
+          })
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 4.6,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          initIsoLine(mapObj)
+        })
+      }
+      async function addIsoLineLayer(mapObj, url) {
+        let params = {
+          zIndex: 1005,
+          // 图层配置
+          colorRamp: [
+            [500, 'rgba(0, 0, 255, 1)'], // 大蓝
+            [510, 'rgba(20, 40, 255, 1)'], // 深蓝
+            [520, 'rgba(50, 80, 255, 1)'], // 中蓝
+            [530, 'rgba(255, 0, 0, 1)'], // 大红
+            [540, 'rgba(255, 50, 50, 1)'], // 红
+            [550, 'rgba(180, 0, 255, 1)'], // 大紫
+            [560, 'rgba(150, 0, 180, 1)'], // 紫
+            [570, 'rgba(100, 0, 140, 1)'], // 深紫
+            [590, 'rgba(255, 105, 180, 1)'], // 熏衣草粉
+          ],
+          minZoom: 6,
+          maxZoom: 20,
+          // 设置等值线样式
+          lineStyle: {
+            // 是否使用图例
+            useColorRamp: false,
+            color: 'rgba(0,0,200,1)',
+
+            special: [
+              {
+                value: 580,
+                width: 10,
+                color: '#ffff00',
+              },
+              {
+                value: 560,
+                width: 5,
+                color: '#ff0000',
+              },
+            ],
+            //等值线值对应的字段
+            textValue: 'level-value',
+            //等值线值对应的颜色
+            fontColor: '#ffffff',
+            //等值线值对应的大小
+            fontSize: 35,
+            // 是否显示标签
+            showLabel: true,
+            fontBackColor: 'rgba(50, 80, 255, 1)',
+          },
+          // 设置等值线标签样式
+          lineLabelStyle: {
+            useColorRamp: false, //是否使用渐变颜色的渲染文字的背景框
+            //等值线值对应的颜色
+            fontColor: '#000000',
+            //等值线值对应的大小
+            fontSize: 40,
+            // 标签背景颜色
+            fontBackColor: 'transparent',
+            //文字的背景框颜色
+          },
+          // 设置极值点样式
+          extremeStyle: {
+            // 是否使用图例
+            // useColorRamp: false,
+            // 是否显示标签
+            showLabel: true,
+            // textValue: 'value',
+            fontSize: 10,
+          },
+          projection: mapObj.getView().getProjection().getCode() || 'EPSG:3857',
+        }
+
+        const layer = new contourLayer(mapObj, params)
+        layer.setZIndex(20)
+        mapObj.addLayer(layer)
+        await layer.loadGeojson(url)
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>

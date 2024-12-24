@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据服务-雷达资料-天气雷达V3.0-swan雷达组合反射率预报</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers, style } = window.CMECore
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+
+      function onRun() {
+        // 请求新数据之前删除旧图层
+        if (tiffLayers?.cogLayer) {
+          mapObj.removeLayer(tiffLayers.cogLayer)
+        }
+        if (tiffLayers?.gridLayer) {
+          mapObj.removeLayer(tiffLayers.gridLayer)
+        }
+        if (tiffLayers?.arrowLayer) {
+          mapObj.removeLayer(tiffLayers.arrowLayer)
+        }
+        singKleLayer(mapObj, '/data/radar/swan雷达组合反射率预报.tiff')
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 4.6,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        window.postClose && window.postClose()
+        mapObj.once('postrender', function () {
+          const params = {
+            dataCode: 'rdcp_swan',
+            element: 'ecref',
+            levelType: 1,
+            level: 0,
+            startTime: '20241123230000',
+            forecastTime: 6,
+          }
+          onRun(params)
+        })
+      }
+      function singKleLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getsingleConfig()
+        // 获取文本配置参数
+        const paramstext = getTextConfig()
+        // 获取箭头配置参数
+        //  const paramsArrow=getArrowConfig();
+        tiffLayers = new blendLayers(map, {
+          url: url,
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer)
+          })
+          // 绘制网格值
+          // tiffLayers.addTextLayer(paramstext).then((layer) => {
+          //   let option = {
+          //     gridLayer: {
+          //       range: {
+          //         min: 10,
+          //         max: 20,
+          //       },
+          //     },
+          //   }
+          //   map.addLayer(layer)
+          // })
+        })
+      }
+
+      function getsingleConfig() {
+        let params = {
+          layerName: 'cogtifLayer',
+          opacity: 1.0,
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
+          zIndex: 14,
+          colors: [
+            [0, [0, 161, 247, 0]],
+            [10, [0, 161, 247, 1]],
+            [12, [0, 175, 244, 1]],
+            [14, [0, 190, 242, 1]],
+            [16, [0, 222, 0, 1]],
+            [18, [0, 206, 0, 1]],
+            [20, [0, 190, 0, 1]],
+            [22, [0, 178, 0, 1]],
+            [24, [0, 166, 0, 1]],
+            [26, [0, 154, 0, 1]],
+            [28, [0, 143, 0, 1]],
+            [30, [255, 255, 0, 1]],
+            [32, [251, 243, 0, 1]],
+            [34, [247, 230, 0, 1]],
+            [36, [243, 217, 0, 1]],
+            [38, [241, 203, 0, 1]],
+            [40, [245, 190, 0, 1]],
+            [42, [249, 177, 0, 1]],
+            [44, [253, 163, 0, 1]],
+            [46, [251, 172, 172, 1]],
+            [48, [243, 172, 172, 1]],
+            [50, [255, 100, 92, 1]],
+            [52, [247, 100, 92, 1]],
+            [54, [239, 100, 92, 1]],
+            [56, [234, 2, 48, 1]],
+            [58, [226, 2, 48, 1]],
+            [60, [235, 0, 195, 1]],
+            [62, [203, 0, 191, 1]],
+            [64, [171, 0, 187, 1]],
+            [66, [159, 30, 195, 1]],
+            [68, [164, 90, 218, 1]],
+            [70, [173, 145, 241, 1]],
+          ],
+        }
+        return params
+      }
+
+      function getTextConfig() {
+        let params = {
+          layerName: 'textLayer',
+          type: 'grid',
+          layerName: 'textLayer', //文本图层的图层名字,默认是栅格数据id名称加上_Text
+          precision: 1, //格网数据显示的小数点的精度
+          opacity: 1, //透明度
+          zIndex: 200, //图层层级
+          distanceArrow: 80, //距离
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: '18px Calibri,sans-serif',
+                  fill: {
+                    Fill: {
+                      color: '#000000',
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: '#ffffff',
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }
+
+        return params
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>

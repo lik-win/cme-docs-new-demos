@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数据服务-卫星资料-FY4B-可见光</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const apiInfo = {
+        url: '/cmes-base-fileservice/file/v1/manage/sate/getCogTif',
+        args: {
+          dataType: {
+            value: 'NSMC_FY4B_AGRI_L1_GLB',
+            type: 'string',
+            required: true,
+            desc: '资料代码',
+          },
+          loadType: {
+            value: 'AGRI',
+            type: 'string',
+            required: true,
+            desc: '载荷类型',
+          },
+          frequency: {
+            value: '4000M',
+            type: 'string',
+            required: true,
+            desc: '观测频次',
+          },
+          band: {
+            value: 'REF_Channel01',
+            type: 'string',
+            required: true,
+            desc: '通道',
+          },
+          time: {
+            value: '20241217061500',
+            type: 'string',
+            required: true,
+            desc: '时间',
+          },
+        },
+      }
+
+      const { Map: CMEMap, View, source, layer } = window.CME2D
+      const { blendLayers } = window.CMECore
+      // 作为全局对象保存
+      let mapObj = null
+      let tiffLayers = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      function onRun(params) {
+        // 请求新数据之前删除旧图层
+        if (tiffLayers) {
+          mapObj.removeLayer(tiffLayers)
+        }
+        let url = `http://10.20.107.239:888/cmes-base-fileservice/file/v1/manage/sate/getCogTif?${handleQueryString(params)}`
+        fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+          .then((res) => res.json())
+          .then((res) => {
+            if (res.data) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
+              let urlNum = String(res.data.slice(7, 19)).replace(/\./g, '')
+              let tifUrl =
+                'http://10.20.107.239:864/cmes-' + urlNum + res.data.slice(19)
+              singKleLayer(mapObj, tifUrl)
+            }
+          })
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 4.6,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          const params = {
+            dataType: 'NSMC_FY4B_AGRI_L1_GLB',
+            loadType: 'AGRI',
+            frequency: '4000M',
+            band: 'REF_Channel01',
+            time: '20241217061500',
+          }
+          onRun(params)
+        })
+      }
+      function singKleLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getsingleKConfig()
+        // 获取文本配置参数
+        const paramstext = getTextCogtig()
+        tiffLayers = new blendLayers(map, {
+          url: url,
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer)
+          })
+          // 绘制网格值
+          // tiffLayers.addTextLayer(paramstext).then((layer) => {
+          //   let option = {
+          //     gridLayer: {
+          //       range: {
+          //         min: 10,
+          //         max: 20,
+          //       },
+          //     },
+          //   }
+          //   map.addLayer(layer)
+          // })
+        })
+      }
+
+      function getsingleKConfig() {
+        let params = {
+          layerName: 'cogtifLayer',
+          opacity: 1,
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
+          zIndex: 14,
+          colors: [
+            [0.173, [0, 0, 0]],
+            [0.181, [2, 2, 2]],
+            [0.189, [5, 5, 5]],
+            [0.197, [7, 7, 7]],
+            [0.205, [10, 10, 10]],
+            [0.213, [12, 12, 12]],
+            [0.221, [15, 15, 15]],
+            [0.229, [17, 17, 17]],
+            [0.237, [20, 20, 20]],
+            [0.245, [22, 22, 22]],
+            [0.253, [25, 25, 25]],
+            [0.261, [28, 28, 28]],
+            [0.269, [30, 30, 30]],
+            [0.277, [33, 33, 33]],
+            [0.285, [35, 35, 35]],
+            [0.293, [38, 38, 38]],
+            [0.301, [40, 40, 40]],
+            [0.309, [43, 43, 43]],
+            [0.317, [45, 45, 45]],
+            [0.325, [48, 48, 48]],
+            [0.333, [51, 51, 51]],
+            [0.341, [53, 53, 53]],
+            [0.349, [56, 56, 56]],
+            [0.357, [58, 58, 58]],
+            [0.365, [61, 61, 61]],
+            [0.373, [63, 63, 63]],
+            [0.381, [66, 66, 66]],
+            [0.389, [68, 68, 68]],
+            [0.397, [71, 71, 71]],
+            [0.405, [73, 73, 73]],
+            [0.413, [76, 76, 76]],
+            [0.421, [79, 79, 79]],
+            [0.429, [81, 81, 81]],
+            [0.437, [84, 84, 84]],
+            [0.445, [86, 86, 86]],
+            [0.453, [89, 89, 89]],
+            [0.461, [91, 91, 91]],
+            [0.469, [94, 94, 94]],
+            [0.477, [96, 96, 96]],
+            [0.485, [99, 99, 99]],
+            [0.493, [102, 102, 102]],
+            [0.501, [104, 104, 104]],
+            [0.509, [107, 107, 107]],
+            [0.517, [109, 109, 109]],
+            [0.525, [112, 112, 112]],
+            [0.533, [114, 114, 114]],
+            [0.541, [117, 117, 117]],
+            [0.549, [119, 119, 119]],
+            [0.557, [122, 122, 122]],
+            [0.565, [124, 124, 124]],
+            [0.573, [127, 127, 127]],
+            [0.581, [130, 130, 130]],
+            [0.589, [132, 132, 132]],
+            [0.597, [135, 135, 135]],
+            [0.605, [137, 137, 137]],
+            [0.613, [140, 140, 140]],
+            [0.621, [142, 142, 142]],
+            [0.629, [145, 145, 145]],
+            [0.637, [147, 147, 147]],
+            [0.645, [150, 150, 150]],
+            [0.653, [153, 153, 153]],
+            [0.661, [155, 155, 155]],
+            [0.669, [158, 158, 158]],
+            [0.677, [160, 160, 160]],
+            [0.685, [163, 163, 163]],
+            [0.693, [165, 165, 165]],
+            [0.701, [168, 168, 168]],
+            [0.709, [170, 170, 170]],
+            [0.717, [173, 173, 173]],
+            [0.725, [175, 175, 175]],
+            [0.733, [178, 178, 178]],
+            [0.741, [181, 181, 181]],
+            [0.749, [183, 183, 183]],
+            [0.757, [186, 186, 186]],
+            [0.765, [188, 188, 188]],
+            [0.773, [191, 191, 191]],
+            [0.781, [193, 193, 193]],
+            [0.789, [196, 196, 196]],
+            [0.797, [198, 198, 198]],
+            [0.805, [201, 201, 201]],
+            [0.813, [204, 204, 204]],
+            [0.821, [206, 206, 206]],
+            [0.829, [209, 209, 209]],
+            [0.837, [211, 211, 211]],
+            [0.845, [214, 214, 214]],
+            [0.853, [216, 216, 216]],
+            [0.861, [219, 219, 219]],
+            [0.869, [221, 221, 221]],
+            [0.877, [224, 224, 224]],
+            [0.885, [226, 226, 226]],
+            [0.893, [229, 229, 229]],
+            [0.901, [232, 232, 232]],
+            [0.909, [234, 234, 234]],
+            [0.917, [237, 237, 237]],
+            [0.925, [239, 239, 239]],
+            [0.933, [242, 242, 242]],
+            [0.941, [244, 244, 244]],
+            [0.949, [247, 247, 247]],
+            [0.957, [249, 249, 249]],
+            [0.965, [252, 252, 252]],
+            [0.973, [254, 254, 254]],
+            [0.999, [255, 255, 255]],
+          ],
+        }
+        return params
+      }
+
+      function getTextCogtig() {
+        let params = {
+          layerName: 'textLayer',
+          type: 'grid',
+          layerName: 'textLayer', //文本图层的图层名字,默认是栅格数据id名称加上_Text
+          precision: 1, //格网数据显示的小数点的精度
+          opacity: 1, //透明度
+          zIndex: 200, //图层层级
+          distanceArrow: 80, //距离
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: '18px Calibri,sans-serif',
+                  fill: {
+                    Fill: {
+                      color: '#000000',
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: '#ffffff',
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }
+
+        return params
+      }
+    </script>
+    <script type="text/javascript" src="/libs/message.js"></script>
+  </body>
+</html>
