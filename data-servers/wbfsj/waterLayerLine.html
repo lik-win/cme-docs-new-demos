@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>新型观测资料-微波辐射计-水汽廓线</title>
+    <title>微波辐射计-液态水含量廓线</title>
     <link rel="stylesheet" href="/demo.css" />
     <link rel="stylesheet" href="/microwave-radiation.css" />
   </head>
@@ -13,39 +13,71 @@
       <div class="mychart" id="myChart"></div>
     </div>
     <script type="text/javascript" src="/libs/echarts.min.js"></script>
-    <script type="module">
-      import temperatureData from "/data/microwaveRadiation/echartData.js";
-      let tempChart = null;
-
-      let yData = temperatureData.data.stationInfo.heightLayers;
-
-      let xData = temperatureData.data.list[0].moisture;
-
-      let seriesData = xData;
-      //   xData.reverse().map((item, index) => {
-      //   return [item, yData[index]]
-      // })
-      let options;
-
-      function getEchart() {
-        options = {
-          title: {
-            text: "水汽廓线",
+    <script type="text/javascript">
+      var apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-upar/cmeapi/v1/operate/getUparEleByTimeSta',
+        args: {
+          dateTime: {
+            value: '20240715095000',
+            type: 'string',
+            required: true,
+            desc: '开始时间',
           },
-          backgroundColor: "#fff",
+          staIds: {
+            value: '57816',
+            type: 'string',
+            required: true,
+            desc: '站号',
+          },
+        },
+      }
+      let tempChart = null
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      const getChartData = async (params) => {
+        let res = await fetch(`${apiInfo.url}?${handleQueryString(params)}`, {
+          method: 'GET',
+        })
+        res = await res.json()
+        if (res.code === 200 && JSON.stringify(res.data).length > 2) {
+          handleData(res)
+        } else {
+          alert(res.msg)
+        }
+      }
+
+      const handleData = (res) => {
+        let yData = res.data[0].stationInfo.heightLayers
+        let xData = res.data[0].list[0].waterLayer
+        let seriesData = xData
+        getEchart(tempChart, xData, yData, seriesData)
+      }
+
+      function getEchart(chart, xData, yData, seriesData) {
+        let options = {
+          title: {
+            text: '液态水含量廓线',
+          },
+          backgroundColor: '#fff',
           legend: {
-            data: ["水汽廓线"],
+            data: ['液态水含量廓线'],
           },
           tooltip: {
-            trigger: "axis",
+            trigger: 'axis',
             axisPointer: {
-              type: "cross",
+              type: 'cross',
               label: {
                 show: true,
-                backgroundColor: "#dce4e9",
-                color: "#445566",
-                borderColor: "rgba(0,0,0,0)",
-                shadowColor: "rgba(0,0,0,0)",
+                backgroundColor: '#dce4e9',
+                color: '#445566',
+                borderColor: 'rgba(0,0,0,0)',
+                shadowColor: 'rgba(0,0,0,0)',
                 shadowOffsetY: 0,
                 // formatter: (params) => {
                 //   if (params.axisDimension === 'y') {
@@ -57,7 +89,7 @@
                 // },
               },
               textStyle: {
-                color: "#fff",
+                color: '#fff',
               },
             },
             // formatter: (params) => {
@@ -66,7 +98,7 @@
             // },
             lineStyle: {
               color: {
-                type: "linear",
+                type: 'linear',
                 x: 0,
                 y: 0,
                 x2: 0,
@@ -74,46 +106,45 @@
                 colorStops: [
                   {
                     offet: 0,
-                    color: "red",
+                    color: 'red',
                   },
                   {
                     offet: 0.5,
-                    color: "blue",
+                    color: 'blue',
                   },
                   {
                     offet: 1,
-                    color: "white",
+                    color: 'white',
                   },
                 ],
               },
             },
             padding: [5, 10],
-            extraCssText: "box-shadow: 1px 0 2px 0 rgba(163, 163, 163, .5)",
+            extraCssText: 'box-shadow: 1px 0 2px 0 rgba(163, 163, 163, .5)',
           },
           xAxis: {
-            // name: '水汽廓线',
-            type: "value",
+            type: 'value',
             nameTextStyle: {
-              color: "#212121",
-              fontFamily: "SourceHanSansCN",
-              fontSize: "13",
+              color: '#212121',
+              fontFamily: 'SourceHanSansCN',
+              fontSize: '13',
             },
             axisLabel: {
-              color: "#212121",
+              color: '#212121',
               fontSize: 10,
 
               // formatter: (val) => {
               //   console.log(val, 'val')
               // },
             },
-            interval: 2,
+            interval: 0.1,
             // max: 300,
             // min: 220,
             axisLine: {
               show: true,
               lineStyle: {
-                type: "dashed",
-                color: "#999",
+                type: 'dashed',
+                color: '#999',
               },
             },
             splitLine: {
@@ -125,37 +156,36 @@
           },
           yAxis: [
             {
-              name: "高度（km）",
+              name: '高度（km）',
               nameTextStyle: {
-                color: "#212121",
-                fontFamily: "SourceHanSansCN",
-                fontSize: "13",
+                color: '#212121',
+                fontFamily: 'SourceHanSansCN',
+                fontSize: '13',
               },
-              type: "category",
+              type: 'category',
               data: yData,
               axisTick: {
                 show: true,
                 lineStyle: {
-                  color: "#707070",
+                  color: '#707070',
                 },
               },
               axisLine: {
                 show: true,
                 lineStyle: {
-                  color: "#D9D9D9",
+                  color: '#D9D9D9',
                 },
               },
-
               axisLabel: {
                 show: true,
-
+                // interval: 0,
                 textStyle: {
-                  color: "#212121",
-                  fontFamily: "SourceHanSansCN",
-                  fontSize: "13",
+                  color: '#212121',
+                  fontFamily: 'SourceHanSansCN',
+                  fontSize: '13',
                 },
                 formatter: (val) => {
-                  return val;
+                  return val
                   // let ite = $filterList.find((e) => e.value == val);
                   // return ite && ite.name;
                 },
@@ -163,13 +193,13 @@
               splitLine: {
                 show: false,
                 lineStyle: {
-                  type: "dashed",
-                  color: "#999",
+                  type: 'dashed',
+                  color: '#999',
                 },
               },
             },
             {
-              type: "category",
+              type: 'category',
               show: false,
               inverse: true,
               data: yData,
@@ -177,78 +207,85 @@
           ],
           series: [
             {
-              name: "水汽",
-              type: "line",
+              name: '液态水',
+              type: 'line',
               data: seriesData,
               symbolSize: 6,
-              symbol: "circle",
+              symbol: 'circle',
               smooth: true,
               lineStyle: {
-                color: "#fe9a8b",
+                color: '#fe9a8b',
               },
               itemStyle: {
                 normal: {
-                  color: "#fe9a8b",
-                  borderColor: "#fe9a8b",
+                  color: '#fe9a8b',
+                  borderColor: '#fe9a8b',
                 },
               },
               emphasis: {
                 itemStyle: {
                   color: {
-                    type: "radial",
+                    type: 'radial',
                     x: 0.5,
                     y: 0.5,
                     r: 0.5,
                     colorStops: [
                       {
                         offset: 0,
-                        color: "#fe9a8b",
+                        color: '#fe9a8b',
                       },
                       {
                         offset: 0.4,
-                        color: "#fe9a8b",
+                        color: '#fe9a8b',
                       },
                       {
                         offset: 0.5,
-                        color: "#fff",
+                        color: '#fff',
                       },
                       {
                         offset: 0.7,
-                        color: "#fff",
+                        color: '#fff',
                       },
                       {
                         offset: 0.8,
-                        color: "#fff",
+                        color: '#fff',
                       },
                       {
                         offset: 1,
-                        color: "#fff",
+                        color: '#fff',
                       },
                     ],
                   },
-                  borderColor: "#fe9a8b",
+                  borderColor: '#fe9a8b',
                   borderWidth: 4,
                 },
               },
             },
           ],
-        };
-        tempChart.setOption(options);
-        tempChart.resize();
+        }
+        tempChart.setOption(options)
+        tempChart.resize()
       }
       const chatResrt = () => {
-        tempChart.resize();
-      };
+        tempChart.resize()
+      }
       const initChart = () => {
-        tempChart = echarts.init(document.getElementById("myChart"));
-        window.addEventListener("resize", () => {
-          chatResrt();
-        });
-      };
+        tempChart = echarts.init(document.getElementById('myChart'))
+        window.addEventListener('resize', () => {
+          chatResrt()
+        })
+      }
+      function onRun(params) {
+        getChartData(params)
+      }
+
       window.onload = () => {
-        initChart();
-        getEchart();
-      };
+        initChart()
+        onRun({
+          dateTime: '20240715095000',
+          staIds: '57816',
+        })
+      }
     </script>
   </body>
 </html>

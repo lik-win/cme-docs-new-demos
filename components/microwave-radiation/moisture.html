@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -14,54 +14,42 @@
     </div>
     <script type="text/javascript" src="/libs/echarts.min.js"></script>
     <script type="module">
-      import temperatureData from '/data/microwaveRadiation/echartData.js'
-      let tmepChart = null
+      import temperatureData from "/data/microwaveRadiation/echartData.js";
+      let tempChart = null;
 
-      let yData = temperatureData.data.stationInfo.heightLayers
+      let yData = temperatureData.data.stationInfo.heightLayers;
 
-      let moistureList = temperatureData.data.list
-      let xData = temperatureData.data.list.map((item) => item.dateTime)
-      let length = temperatureData.data.list[0].moisture.length
+      let moistureList = temperatureData.data.list;
+      let xData = temperatureData.data.list.map((item) => item.dateTime);
+      let length = temperatureData.data.list[0].moisture.length;
       let seriesData = [],
         seriesD = [],
-        options
+        options;
 
       for (let j = 0; j < xData.length; j++) {
         for (let index = 0; index < length; index++) {
-          seriesD.push([
-            xData[j],
-            String(yData[index]),
-            String(moistureList[j].moisture[index]),
-          ])
+          seriesD.push([xData[j], String(yData[index]), String(moistureList[j].moisture[index])]);
         }
       }
       seriesData.push({
         data: seriesD,
-        type: 'heatmap',
-        name: '水汽时序',
+        type: "heatmap",
+        name: "水汽时序",
         emphasis: {
           itemStyle: {
-            borderColor: '#333',
+            borderColor: "#333",
             borderWidth: 1,
           },
         },
         progressive: 1000,
         animation: false,
-      })
-      var colorData = [
-        '#d12fff',
-        '#906ffe',
-        '#6f8ffd',
-        '#50afff',
-        '#32ceff',
-        '#10efff',
-        '#10efff',
-      ]
+      });
+      var colorData = ["#d12fff", "#906ffe", "#6f8ffd", "#50afff", "#32ceff", "#10efff", "#10efff"];
 
       function getEchart() {
         options = {
           title: {
-            text: '水汽时序',
+            text: "水汽时序",
           },
           tooltip: {
             //鼠标移入图例，展示内容
@@ -71,8 +59,8 @@
        }*/
           },
           xAxis: {
-            name: '时间',
-            type: 'category',
+            name: "时间",
+            type: "category",
             data: xData,
           },
           grid: {
@@ -82,9 +70,9 @@
             bottom: 50,
           },
           yAxis: {
-            type: 'category',
+            type: "category",
             data: yData,
-            name: '高度（km）',
+            name: "高度（km）",
             // nameGap: 50,
             // nameLocation: "middle",
             nameTextStyle: {
@@ -98,10 +86,10 @@
             hoverLink: false, //取消示例图与左边数据关联
             precision: 2, //展示示例图展示数据的小数点保留位数
             calculable: true,
-            orient: 'vertical',
+            orient: "vertical",
             //left: 'left', 控制示例图在左边或者右边展示
-            left: 'right',
-            bottom: '56%',
+            left: "right",
+            bottom: "56%",
           },
           series: seriesData,
           label: {
@@ -113,26 +101,26 @@
           itemStyle: {
             emphasis: {
               shadowBlur: 10,
-              shadowColor: 'rgba(0, 0, 0, 0.5)',
+              shadowColor: "rgba(0, 0, 0, 0.5)",
             },
           },
-        }
-        tmepChart.setOption(options)
-        tmepChart.resize()
+        };
+        tempChart.setOption(options);
+        tempChart.resize();
       }
       const chatResrt = () => {
-        tmepChart.resize()
-      }
+        tempChart.resize();
+      };
       const initChart = () => {
-        tmepChart = echarts.init(document.getElementById('myChart'))
-        window.addEventListener('resize', () => {
-          chatResrt()
-        })
-      }
+        tempChart = echarts.init(document.getElementById("myChart"));
+        window.addEventListener("resize", () => {
+          chatResrt();
+        });
+      };
       window.onload = () => {
-        initChart()
-        getEchart()
-      }
+        initChart();
+        getEchart();
+      };
     </script>
   </body>
 </html>

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>微波辐射计-相对湿度时序</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <link rel="stylesheet" href="/microwave-radiation.css" />
+  </head>
+
+  <body>
+    <div class="weather">
+      <div class="mychart" id="myChart"></div>
+    </div>
+    <script type="text/javascript" src="/libs/echarts.min.js"></script>
+    <script type="text/javascript">
+      var apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-upar/cmeapi/v1/operate/getUparEleByTimeRangeAndStaID',
+        args: {
+          startTime: {
+            value: '20241220110000',
+            type: 'string',
+            required: true,
+            desc: '开始时间',
+          },
+          endTime: {
+            value: '20240920125000',
+            type: 'string',
+            required: true,
+            desc: '结束时间',
+          },
+          staIds: {
+            value: '57816',
+            type: 'string',
+            required: true,
+            desc: '站号',
+          },
+        },
+      }
+      let tempChart = null
+
+      let colorData = [
+        '#ff381b',
+        '#ff9d52',
+        '#c8e588',
+        '#81ffb5',
+        '#159df1',
+        '#5c38fd',
+      ]
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+
+      const getChartData = async (params) => {
+        let res = await fetch(`${apiInfo.url}?${handleQueryString(params)}`, {
+          method: 'GET',
+        })
+        res = await res.json()
+        if (res.code === 200 && JSON.stringify(res.data).length > 2) {
+          handleData(res)
+        } else {
+          alert(res.msg)
+        }
+      }
+
+      const handleData = (res) => {
+        let stationInfo = res.data[0].stationInfo
+        let list = res.data.map((item) => item.list[0])
+
+        let yData = stationInfo.heightLayers
+
+        let humidityList = list
+        let xData = list.map((item) => item.dateTime)
+        let length = list[0].humidity.length
+        let seriesData = [],
+          seriesD = [],
+          options
+        for (let j = 0; j < xData.length; j++) {
+          for (let index = 0; index < length; index++) {
+            seriesD.push([
+              xData[j],
+              String(yData[index]),
+              String(humidityList[j].humidity[index]),
+            ])
+          }
+        }
+        seriesData.push({
+          data: seriesD,
+          type: 'heatmap',
+          name: '相对湿度时序',
+          emphasis: {
+            itemStyle: {
+              borderColor: '#333',
+              borderWidth: 1,
+            },
+          },
+          progressive: 1000,
+          animation: false,
+        })
+        getEchart(tempChart, xData, yData, colorData, seriesData)
+      }
+
+      function getEchart(chart, xData, yData, colorData, seriesData) {
+        let options = {
+          title: {
+            text: '相对湿度时序',
+          },
+          tooltip: {
+            //鼠标移入图例，展示内容
+            /* trigger: 'axis',
+             axisPointer : {            // 坐标轴指示器，坐标轴触发有效
+                 type : 'line'        // 默认为直线，可选为：'line' | 'shadow'
+             }*/
+          },
+          xAxis: {
+            name: '时间',
+            type: 'category',
+            data: xData,
+          },
+          grid: {
+            top: 90,
+            left: 90,
+            right: 90,
+            bottom: 50,
+          },
+          yAxis: {
+            type: 'category',
+            data: yData,
+            name: '高度（km）',
+            // nameGap: 50,
+            // nameLocation: "middle",
+            nameTextStyle: {
+              fontSize: 15,
+            },
+          },
+          visualMap: {
+            color: colorData,
+            min: 0,
+            max: 100,
+            hoverLink: false, //取消示例图与左边数据关联
+            precision: 2, //展示示例图展示数据的小数点保留位数
+            calculable: true,
+            orient: 'vertical',
+            //left: 'left', 控制示例图在左边或者右边展示
+            left: 'right',
+            bottom: '56%',
+          },
+          series: seriesData,
+          label: {
+            normal: {
+              //是否网格点位数值
+              show: true,
+            },
+          },
+          itemStyle: {
+            emphasis: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(0, 0, 0, 0.5)',
+            },
+          },
+        }
+        chart.setOption(options)
+        chart.resize()
+      }
+      const chatResrt = (chart) => {
+        chart.resize()
+      }
+      const initChart = () => {
+        tempChart = echarts.init(document.getElementById('myChart'))
+        window.addEventListener('resize', () => {
+          chatResrt(tempChart)
+        })
+      }
+
+      function onRun(params) {
+        getChartData(params)
+      }
+      window.onload = () => {
+        initChart()
+        onRun({
+          startTime: '20240920113000',
+          endTime: '20240920125000',
+          staIds: '57816',
+        })
+      }
+    </script>
+  </body>
+</html>

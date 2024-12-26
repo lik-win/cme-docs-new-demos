@@ -38,8 +38,9 @@
           layers: [
             new layer.Tile({
               preload: Infinity, //开启预加载模式
+              zIndex: 999,
               source: new source.XYZ({
-                url: 'http://10.1.65.144:81/DataServer?T=vec_w&x={x}&y={y}&l={z}', // 内网地址
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
               }),
             }),
           ],
