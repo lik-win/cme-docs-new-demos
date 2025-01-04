@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -10,53 +10,54 @@
     <div id="map"></div>
     <script type="text/javascript" src="/libs/cme2d.js"></script>
     <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
-    <script type="module">
-      import { addGeojsonLayer } from '/public/libs/rain-layer/geojsonCommon.js'
-      const { Map: CMEMap, View, source, layer } = window.CME2D
-      const { blendLayers, style } = window.CMECore
-      const { XYZ } = window.CME2D.source
-      let map, measure, get_current_route
+    <script type="text/javascript" src="/libs/rain-layer/common.js"></script>
+    <script type="text/javascript">
+      // import { addGeojsonLayer } from '/cme/libs/rain-layer/common.js'
+      const { Map: CMEMap, View, source, layer } = window.CME2D;
+      const { blendLayers, style } = window.CMECore;
+      const { XYZ } = window.CME2D.source;
+      let map, measure, get_current_route;
       function initData(map) {
-        fetch('/cme/data/json/cz.json')
+        fetch("/cme/data/json/cz.json")
           .then((res) => res.json())
           .then((res) => {
-            console.log('res', res)
+            console.log("res", res);
             //面雨量的颜色 比如 数值是大于等于6小于15的颜色为'rgba(61,186,61,0.8)'
             let color = [
-              [0, 'rgba(166,242,143,0.8)'],
-              [6, 'rgba(61,186,61,0.8)'],
-              [15, 'rgba(97,184,255,0.8)'],
-              [30, 'rgba(0,0,255,0.8)'],
-              [60, 'rgba(255,0,255,0.8)'],
-              [150, 'rgba(128,0,64,0.8)'],
-            ]
-            addGeojsonLayer(map, res, color)
-          })
+              [0, "rgba(166,242,143,0.8)"],
+              [6, "rgba(61,186,61,0.8)"],
+              [15, "rgba(97,184,255,0.8)"],
+              [30, "rgba(0,0,255,0.8)"],
+              [60, "rgba(255,0,255,0.8)"],
+              [150, "rgba(128,0,64,0.8)"],
+            ];
+            addGeojsonLayer(map, res, color);
+          });
       }
       function initMap() {
         map = new CMEMap({
-          target: document.querySelector('#map'), //挂载实例
+          target: document.querySelector("#map"), //挂载实例
           layers: [
             new layer.Tile({
               source: new XYZ({
-                url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', // 内网地址
+                url: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}", // 内网地址
               }),
             }),
           ],
           view: new View({
             //地图视图
             center: [92, 35],
-            projection: 'EPSG:4326',
+            projection: "EPSG:4326",
             zoom: 5,
             wrapX: true,
           }), //地图设置
           controls: [], //取消地图操作
-        })
-        initData(map)
+        });
+        initData(map);
       }
       window.onload = function () {
-        initMap()
-      }
+        initMap();
+      };
     </script>
   </body>
 </html>

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>雷达-栅格</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer } = window.CME2D;
+
+      let map;
+
+      const { blendLayers, style } = window.CMECore;
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              source: new source.XYZ({
+                url: "http://10.0.54.106:8080/windy/{z}/{x}/{y}.png", // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: "EPSG:4326",
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        });
+        return map;
+      }
+
+      let mapObj = null;
+      window.onload = function () {
+        const mapEl = document.querySelector("#map");
+        mapObj = initMap(mapEl);
+
+        mapObj.once("postrender", function () {
+          addRadarLayer(mapObj);
+        });
+      };
+
+      function addRadarLayer(map) {
+        let url = "/cme/data/radar/RADA_CREF_20230728120000_4326.tif"; //雷达图
+
+        // 获取凤羽图的配置参数
+        const params = getsingleConfig();
+        // 获取文本配置参数
+        const paramstext = getTextCogtig();
+        // 获取箭头配置参数
+        //  const paramsArrow=getArrowCogtig();
+        let layers = new blendLayers(map, {
+          url: url,
+        });
+
+        //绘制色斑图
+        layers._render(params).then((object) => {
+          layers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer);
+          });
+          // // //绘制网格值
+          layers.addTextLayer(paramstext).then((layer) => {
+            let option = {
+              gridLayer: {
+                range: {
+                  min: 10,
+                  max: 20,
+                },
+              },
+            };
+            map.addLayer(layer);
+          });
+        });
+      }
+      function getsingleConfig() {
+        let params = {
+          layerName: "cogtifLayer",
+          opacity: 1.0,
+          interpolation: "grid", // 渐变 linear  区间 nearest  网格 grid
+          zIndex: 14,
+          colors: [
+            [0.01, [255, 255, 255, 0]],
+            [5.0, [161, 212, 255]],
+            [10.0, [0, 236, 0]],
+            [15.0, [0, 0, 255]],
+            [20.0, [0, 200, 0]],
+            [25.0, [0, 141, 0]],
+            [30.0, [255, 255, 0]],
+            [35.0, [231, 192, 0]],
+            [40.0, [252, 144, 0]],
+            [45.0, [255, 0, 0]],
+            [50.0, [214, 0, 0]],
+            [55.0, [192, 0, 0]],
+            [60.0, [255, 0, 240]],
+            [65.0, [120, 0, 132]],
+            [70.0, [173, 144, 240]],
+          ],
+        };
+        return params;
+      }
+      function getTextCogtig() {
+        let params = {
+          layerName: "textLayer",
+          range: {
+            min: 10,
+            max: 100,
+          },
+          opacity: 1, //透明度
+          zIndex: 200, //图层层级
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: "18px Calibri,sans-serif",
+                  fill: {
+                    Fill: {
+                      color: "#000000",
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: "#ffffff",
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        };
+
+        return params;
+      }
+    </script>
+  </body>
+</html>
