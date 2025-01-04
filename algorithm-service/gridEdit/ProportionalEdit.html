@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>业务组件-格点编辑-温度要素正比选择修改</title>
+    <title>正比法编辑</title>
     <link rel="stylesheet" href="/demo.css" />
     <style>
       .edit_panel {
@@ -44,58 +44,58 @@
   <script type="text/javascript" src="/libs/cme2d.js"></script>
   <script type="text/javascript" src="/libs/turf.min.js"></script>
   <script type="module">
-    import { initGridLayer, editGridLayer } from '/libs/GridEdit/allEdit.js'
-    import drawTools from '/libs/GridEdit/drawTools.js'
-    const { Map, View, Feature, layer, source } = window.CME2D
-    const { Tile: TileLayer, Vector: VectorLayer } = window.CME2D.layer
-    const { XYZ, Vector: VectorSource } = window.CME2D.source
-    const { Style, Icon, Text, Fill, Stroke } = window.CME2D.style
-    const { Point } = window.CME2D.geom
-    let selectEditFeatureIndex = 0
-    let currentEditType = '漫游'
-    let currentEditGeojsonId = ''
-    const PORT_8882 = 'http://10.20.107.239:8886'
-    let mapObj, vectorLayer, iconStyle
+    import { initGridLayer, editGridLayer } from "/libs/GridEdit/allEdit.js";
+    import drawTools from "/libs/GridEdit/drawTools.js";
+    const { Map, View, Feature, layer, source } = window.CME2D;
+    const { Tile: TileLayer, Vector: VectorLayer } = window.CME2D.layer;
+    const { XYZ, Vector: VectorSource } = window.CME2D.source;
+    const { Style, Icon, Text, Fill, Stroke } = window.CME2D.style;
+    const { Point } = window.CME2D.geom;
+    let selectEditFeatureIndex = 0;
+    let currentEditType = "漫游";
+    let currentEditGeojsonId = "";
+    const PORT_8882 = "http://10.20.107.239:8886";
+    let mapObj, vectorLayer, iconStyle;
 
-    let max = 0
-    let omax = '暂无数据'
-    let min = 0
-    let omin = '暂无数据'
-    let DrawTool = null //绘制工具
+    let max = 0;
+    let omax = "暂无数据";
+    let min = 0;
+    let omin = "暂无数据";
+    let DrawTool = null; //绘制工具
     vectorLayer = new VectorLayer({
       source: new VectorSource(),
-    })
+    });
     const editTool = [
       {
-        label: '漫游',
-        id: '漫游',
-        icon: 'frehand',
+        label: "漫游",
+        id: "漫游",
+        icon: "frehand",
         disabled: false,
         checked: true,
-        type: 'view',
+        type: "view",
       },
       {
-        id: '正比选择',
-        label: '正比选择',
-        icon: 'quanzhong',
+        id: "正比选择",
+        label: "正比选择",
+        icon: "quanzhong",
         disabled: false,
-        type: 'edit',
+        type: "edit",
         checked: true,
       },
-    ]
+    ];
 
     const tempConfig = {
-      id: 'TMP',
-      name: '气温',
-      element: 'TMP',
+      id: "TMP",
+      name: "气温",
+      element: "TMP",
       forecastTime: 0,
-      levelType: '103',
-      level: '2',
+      levelType: "103",
+      level: "2",
       step: 1,
       timeSkip: 60,
-      styleId: 'TMP3.json',
-      information: 'CMA_MESO_FOR_CHN',
-      sourceType: 'BUSINESS',
+      styleId: "TMP3.json",
+      information: "CMA_MESO_FOR_CHN",
+      sourceType: "BUSINESS",
       legendData: {
         legend: [
           [-36, [128, 0, 124, 1]],
@@ -121,95 +121,95 @@
           [40, [153, 51, 1, 1]],
         ],
       },
-    }
+    };
     const initDemision = {
-      dt: '20240923080000',
+      dt: "20240923080000",
       n: tempConfig.element,
       ybs: 1,
       ybe: 1,
       step: tempConfig.step,
-    }
+    };
 
     const ev_apply = () => {
       const editDemision = {
-        dt: '20240923080000',
+        dt: "20240923080000",
         n: tempConfig.element,
         ybs: 1,
         ybe: 1,
         step: tempConfig.step,
         all: false,
-        ret: 'SUM',
+        ret: "SUM",
         ops: [
           {
-            t: 'pro',
-            r: currentEditGeojsonId || '',
+            t: "pro",
+            r: currentEditGeojsonId || "",
             v: 0,
             omin: omin,
             omax: omax,
-            min: handleMinMaxValue('inputMinEl', 'get'),
-            max: handleMinMaxValue('inputMaxEl', 'get'),
-            type: 'polygon',
+            min: handleMinMaxValue("inputMinEl", "get"),
+            max: handleMinMaxValue("inputMaxEl", "get"),
+            type: "polygon",
           },
         ],
-      }
-      editGridLayer(mapObj, editDemision, tempConfig)
-    }
+      };
+      editGridLayer(mapObj, editDemision, tempConfig);
+    };
 
     const ev_select = async (item, index) => {
-      if (item.id === '漫游') {
-        let element = mapObj.values_?.target
-        element.style.cursor = 'default'
-        DrawTool && DrawTool.clearInteraction() // 清除绘制工具
-        selectEditFeatureIndex = index
+      if (item.id === "漫游") {
+        let element = mapObj.values_?.target;
+        element.style.cursor = "default";
+        DrawTool && DrawTool.clearInteraction(); // 清除绘制工具
+        selectEditFeatureIndex = index;
       }
-      if (item?.type === 'edit') {
+      if (item?.type === "edit") {
         if (selectEditFeatureIndex === index) {
-          return false
+          return false;
         }
-        let element = mapObj.values_?.target
-        element.style.cursor = 'crosshair'
+        let element = mapObj.values_?.target;
+        element.style.cursor = "crosshair";
         if (selectEditFeatureIndex !== 0) {
           // 视图模式不用清空图元
-          DrawTool && DrawTool.clear() //
+          DrawTool && DrawTool.clear(); //
         }
         //编辑模式
-        currentEditType = item.id
-        if (currentEditType === '正比选择') {
+        currentEditType = item.id;
+        if (currentEditType === "正比选择") {
           if (!DrawTool) {
-            DrawTool = new drawTools(mapObj)
+            DrawTool = new drawTools(mapObj);
           }
-          ev_editMaxMin()
+          ev_editMaxMin();
         }
-        selectEditFeatureIndex = index
+        selectEditFeatureIndex = index;
       }
-    }
+    };
     const ev_editMaxMin = () => {
-      DrawTool.clear()
-      DrawTool.drawInteraction('PolygonSmooth', true)
+      DrawTool.clear();
+      DrawTool.drawInteraction("PolygonSmooth", true);
       DrawTool.drawStart(() => {
-        DrawTool.clearFeature()
-      })
+        DrawTool.clearFeature();
+      });
       DrawTool.drawEnd((feature) => {
-        let smoothedCoordinates = feature.getGeometry().getCoordinates()
-        let timestamp = new Date().getTime()
+        let smoothedCoordinates = feature.getGeometry().getCoordinates();
+        let timestamp = new Date().getTime();
         const geojsonPolygon = {
-          type: 'Feature',
+          type: "Feature",
           crs: {
-            type: 'name',
-            properties: { name: 'urn:ogc:def:crs:OGC:1.3:CRS84' },
+            type: "name",
+            properties: { name: "urn:ogc:def:crs:OGC:1.3:CRS84" },
           },
           geometry: {
-            type: 'Polygon',
+            type: "Polygon",
             coordinates: [smoothedCoordinates],
           },
           properties: {
-            name: 'My Polygon',
+            name: "My Polygon",
           },
-        }
+        };
         fetch(`${PORT_8882}/v8/saveGoJsonData`, {
-          method: 'POST', // 指定请求方法为 POST
+          method: "POST", // 指定请求方法为 POST
           headers: {
-            'Content-Type': 'application/json', // 设置请求头，告诉服务器发送的是 JSON 数据
+            "Content-Type": "application/json", // 设置请求头，告诉服务器发送的是 JSON 数据
           },
           body: JSON.stringify({
             dataId: timestamp,
@@ -217,107 +217,100 @@
           }),
         })
           .then((res) => {
-            let msg = res?.data?.msg
-            let code = res?.data?.code
+            let msg = res?.data?.msg;
+            let code = res?.data?.code;
             if (code === 201) {
-              DrawTool.clearFeature()
+              DrawTool.clearFeature();
             } else {
               let sdui = JSON.stringify({
                 ...initDemision,
-              })
+              });
               const params = {
                 levelType: tempConfig?.levelType,
                 level: tempConfig?.level,
                 information: tempConfig.information,
                 geoPath: timestamp,
                 sdui,
-              }
-              let url1 = `${PORT_8882}/v8/saveData/getMinMax?&information=${params.information}&levelType=${params.levelType}&level=${params.level}&sdui=${encodeURIComponent(params.sdui)}&geoPath=${encodeURIComponent(params.geoPath)}`
+              };
+              let url1 = `${PORT_8882}/v8/saveData/getMinMax?&information=${params.information}&levelType=${params.levelType}&level=${
+                params.level
+              }&sdui=${encodeURIComponent(params.sdui)}&geoPath=${encodeURIComponent(params.geoPath)}`;
               fetch(url1)
                 .then((res) => res.json())
                 .then((data) => {
                   if (Object.keys(data).length > 0) {
-                    let {
-                      scale = 1,
-                      offset = 0,
-                      min: originMin = '',
-                      max: originMax = '',
-                    } = data
-                    offset = tempConfig?.id === 'TMP' ? -273.15 : 0
-                    omin = Number(originMin / scale + offset).toFixed(1)
-                    omax = Number(originMax / scale + offset).toFixed(1)
-                    min = omin
-                    max = omax
-                    handleMinMaxValue('inputMinEl', 'set', min)
-                    handleMinMaxValue('inputMaxEl', 'set', max)
-                    currentEditGeojsonId = timestamp
+                    let { scale = 1, offset = 0, min: originMin = "", max: originMax = "" } = data;
+                    offset = tempConfig?.id === "TMP" ? -273.15 : 0;
+                    omin = Number(originMin / scale + offset).toFixed(1);
+                    omax = Number(originMax / scale + offset).toFixed(1);
+                    min = omin;
+                    max = omax;
+                    handleMinMaxValue("inputMinEl", "set", min);
+                    handleMinMaxValue("inputMaxEl", "set", max);
+                    currentEditGeojsonId = timestamp;
                   }
                 })
-                .catch((err) => {})
+                .catch((err) => {});
             }
           })
-          .catch((err) => {})
-      })
-    }
+          .catch((err) => {});
+      });
+    };
 
     const ev_reset = () => {
-      initGridLayer(mapObj, initDemision, tempConfig)
-      DrawTool && DrawTool.clear()
-      DrawTool && DrawTool.clearFeature()
-    }
+      initGridLayer(mapObj, initDemision, tempConfig);
+      DrawTool && DrawTool.clear();
+      DrawTool && DrawTool.clearFeature();
+    };
     function initMap(mapEl) {
       const map = new Map({
         target: mapEl, //挂载实例
         layers: [
           new layer.Tile({
             source: new source.XYZ({
-              url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
+              url: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}",
             }),
           }),
         ],
         view: new View({
           //地图视图
           center: [106, 35],
-          projection: 'EPSG:4326',
+          projection: "EPSG:4326",
           zoom: 3,
           wrapX: true,
         }), //地图设置
         controls: [], //取消地图操作
-      })
-      return map
+      });
+      return map;
     }
 
     // 设置/获取最大最小值
     const handleMinMaxValue = (elId, type, value) => {
-      let inputMaxEl = document.getElementById(elId)
-      if (type === 'get') {
-        return inputMaxEl.valueAsNumber || 0
+      let inputMaxEl = document.getElementById(elId);
+      if (type === "get") {
+        return inputMaxEl.valueAsNumber || 0;
       }
-      if (type === 'set') {
-        inputMaxEl.value = value
+      if (type === "set") {
+        inputMaxEl.value = value;
       }
-    }
+    };
 
     window.onload = function () {
-      const mapEl = document.querySelector('#map')
-      mapObj = initMap(mapEl)
-      window.postClose && window.postClose()
-      initGridLayer(mapObj, initDemision, tempConfig)
-      document
-        .getElementById('changeTypeBtn1')
-        .addEventListener('click', () => {
-          ev_select(editTool[0], 0)
-        })
-      document
-        .getElementById('changeTypeBtn2')
-        .addEventListener('click', () => {
-          ev_select(editTool[1], 1)
-        })
-      document.getElementById('applyBtn').addEventListener('click', ev_apply)
-      document.getElementById('resetBtn').addEventListener('click', () => {
-        initGridLayer(mapObj, initDemision, tempConfig)
-      })
-    }
+      const mapEl = document.querySelector("#map");
+      mapObj = initMap(mapEl);
+      window.postClose && window.postClose();
+      initGridLayer(mapObj, initDemision, tempConfig);
+      document.getElementById("changeTypeBtn1").addEventListener("click", () => {
+        ev_select(editTool[0], 0);
+      });
+      document.getElementById("changeTypeBtn2").addEventListener("click", () => {
+        ev_select(editTool[1], 1);
+      });
+      document.getElementById("applyBtn").addEventListener("click", ev_apply);
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        initGridLayer(mapObj, initDemision, tempConfig);
+      });
+    };
   </script>
   <script type="text/javascript" src="/libs/message.js"></script>
 </html>

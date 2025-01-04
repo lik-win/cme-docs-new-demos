@@ -1,9 +1,9 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>业务组件-格点编辑-温度要素整场编辑</title>
+    <title>整场增减编辑</title>
     <link rel="stylesheet" href="/demo.css" />
     <style>
       .edit_panel {
@@ -30,14 +30,7 @@
     <div id="map"></div>
     <div class="edit_panel">
       <div class="row">
-        <label>
-          <input
-            name="radioType"
-            value="fix"
-            type="radio"
-            checked="checked"
-          />定值
-        </label>
+        <label> <input name="radioType" value="fix" type="radio" checked="checked" />定值 </label>
         <label> <input name="radioType" value="sub" type="radio" />减少 </label>
         <label> <input name="radioType" value="add" type="radio" />增加 </label>
       </div>
@@ -49,29 +42,29 @@
     </div>
     <script type="text/javascript" src="/libs/cme2d.js"></script>
     <script type="module">
-      import { initGridLayer, editGridLayer } from '/libs/GridEdit/allEdit.js'
-      const { Map, View, Feature, layer, source } = window.CME2D
-      const { Tile: TileLayer, Vector: VectorLayer } = window.CME2D.layer
-      const { XYZ, Vector: VectorSource } = window.CME2D.source
-      const { Style, Icon, Text, Fill, Stroke } = window.CME2D.style
-      const { Point } = window.CME2D.geom
-      let mapObj = null
+      import { initGridLayer, editGridLayer } from "/libs/GridEdit/allEdit.js";
+      const { Map, View, Feature, layer, source } = window.CME2D;
+      const { Tile: TileLayer, Vector: VectorLayer } = window.CME2D.layer;
+      const { XYZ, Vector: VectorSource } = window.CME2D.source;
+      const { Style, Icon, Text, Fill, Stroke } = window.CME2D.style;
+      const { Point } = window.CME2D.geom;
+      let mapObj = null;
       let vectorLayer = new VectorLayer({
         source: new VectorSource(),
-      })
+      });
 
       const tempConfig = {
-        id: 'TMP',
-        name: '气温',
-        element: 'TMP',
+        id: "TMP",
+        name: "气温",
+        element: "TMP",
         forecastTime: 0,
-        levelType: '103',
-        level: '2',
+        levelType: "103",
+        level: "2",
         step: 1,
         timeSkip: 60,
-        styleId: 'TMP3.json',
-        information: 'CMA_MESO_FOR_CHN',
-        sourceType: 'BUSINESS',
+        styleId: "TMP3.json",
+        information: "CMA_MESO_FOR_CHN",
+        sourceType: "BUSINESS",
         legendData: {
           legend: [
             [-36, [128, 0, 124, 1]],
@@ -97,41 +90,41 @@
             [40, [153, 51, 1, 1]],
           ],
         },
-      }
+      };
       const initDemision = {
-        dt: '20240923080000',
+        dt: "20240923080000",
         n: tempConfig.element,
         ybs: 1,
         ybe: 1,
         step: tempConfig.step,
-      }
+      };
 
       const getRadioValue = () => {
-        return document.querySelector('input[name="radioType"]:checked').value
-      }
+        return document.querySelector('input[name="radioType"]:checked').value;
+      };
       const getInputValue = () => {
-        return document.getElementById('inputEl').valueAsNumber || 0
-      }
+        return document.getElementById("inputEl").valueAsNumber || 0;
+      };
       const ev_apply = () => {
         const editDemision = {
-          dt: '20240923080000',
+          dt: "20240923080000",
           n: tempConfig.element,
           ybs: 1,
           ybe: 1,
           step: tempConfig.step,
           all: true,
-          ret: 'SUM',
+          ret: "SUM",
           ops: [
             {
               t: getRadioValue(),
-              r: '',
+              r: "",
               v: getInputValue(),
-              type: 'all',
+              type: "all",
             },
           ],
-        }
-        editGridLayer(mapObj, editDemision, tempConfig)
-      }
+        };
+        editGridLayer(mapObj, editDemision, tempConfig);
+      };
 
       function initMap(mapEl) {
         const map = new Map({
@@ -140,7 +133,7 @@
             new TileLayer({
               preload: Infinity, //开启预加载模式
               source: new XYZ({
-                url: 'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', //url地址
+                url: "https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}", //url地址
               }),
             }),
             vectorLayer,
@@ -148,28 +141,28 @@
           view: new View({
             //地图视图
             center: [106, 35],
-            projection: 'EPSG:4326',
+            projection: "EPSG:4326",
             zoom: 3,
             wrapX: true,
           }), //地图设置
           controls: [], //取消地图操作
-        })
-        return map
+        });
+        return map;
       }
 
       window.onload = function () {
-        const applyBtn = document.getElementById('applyBtn')
-        const resetBtn = document.getElementById('resetBtn')
-        const mapEl = document.querySelector('#map')
-        mapObj = initMap(mapEl)
-        window.postClose && window.postClose()
-        initGridLayer(mapObj, initDemision, tempConfig)
+        const applyBtn = document.getElementById("applyBtn");
+        const resetBtn = document.getElementById("resetBtn");
+        const mapEl = document.querySelector("#map");
+        mapObj = initMap(mapEl);
+        window.postClose && window.postClose();
+        initGridLayer(mapObj, initDemision, tempConfig);
 
-        applyBtn.addEventListener('click', ev_apply)
-        resetBtn.addEventListener('click', () => {
-          initGridLayer(mapObj, initDemision, tempConfig)
-        })
-      }
+        applyBtn.addEventListener("click", ev_apply);
+        resetBtn.addEventListener("click", () => {
+          initGridLayer(mapObj, initDemision, tempConfig);
+        });
+      };
     </script>
     <script type="text/javascript" src="/libs/message.js"></script>
   </body>
