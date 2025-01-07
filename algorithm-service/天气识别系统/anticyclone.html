@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>反气旋</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script src="/libs/axios.js"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D
+      let map, vectorS, tiffLayers
+      const { blendLayers, style } = window.CMECore
+      const {
+        Point,
+        LineString,
+        Polygon,
+        Circle: GeomCircle,
+      } = window.CME2D.geom
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
+      const { Vector: VectorLayer } = window.CME2D.layer
+      const { Vector: VectorSource } = window.CME2D.source
+      const apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-sysidentify/sysIdentity/algorithm/getResponseFromFile',
+        args: {
+          dateStr: {
+            value: '2024-12-19 00:00:00',
+            type: 'string',
+            required: true,
+            desc: '开始时间',
+          },
+          forecast: {
+            value: '12',
+            type: 'string',
+            required: true,
+            desc: '时次',
+          },
+          identifier: {
+            value: 'anti_vortex',
+            type: 'string',
+            required: true,
+            desc: '要素',
+          },
+          level: {
+            value: '85000',
+            type: 'string',
+            required: true,
+            desc: '层级',
+          },
+        },
+      }
+
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+      function init(params) {
+        axios.get(apiInfo.url + `?${handleQueryString(params)}`).then((res) => {
+          if (window.postResult) {
+            window.postResult(res.data)
+          }
+          if (tiffLayers?.arrowLayer) {
+            mapObj.removeLayer(tiffLayers?.arrowLayer)
+            vectorS.clear()
+          }
+          let {
+            data: { element, tifPath, sysGeojson },
+            success,
+          } = res.data
+          if (success) {
+            if (element == 'WIN') {
+              let urlNum = String(tifPath.slice(7, 19)).replace(/\./g, '')
+              let url =
+                'http://10.20.107.239:864/cmes-' + urlNum + tifPath.slice(19)
+              multiLayer(mapObj, url)
+              if (sysGeojson) {
+                let features = JSON.parse(sysGeojson).features
+                features.map((item) => {
+                  let type = item.geometry.type
+                  if (type == 'Point') {
+                    const feature = new Feature({
+                      geometry: new Point(item.geometry.coordinates),
+                    })
+                    feature.setStyle(
+                      new Style({
+                        image: new Circle({
+                          fill: new Fill({
+                            color: '#007FFF',
+                          }),
+                          stroke: new Stroke({
+                            color: 'rgba(0,0,0,0.6)', // 字体边缘颜色
+                            width: 1, // 字体边缘宽度
+                          }),
+                          radius: 10,
+                        }),
+                      }),
+                    )
+                    vectorS.addFeature(feature)
+                  }
+                })
+              }
+            }
+          }
+        })
+      }
+      function initMap(mapEl) {
+        vectorS = new VectorSource({
+          wrapX: true,
+        })
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+            new VectorLayer({
+              source: vectorS,
+              name: 'Point',
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      function onRun(params) {
+        init(params)
+      }
+
+      let mapObj = null
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          let params = {
+            dateStr: apiInfo.args.dateStr.value,
+            forecast: apiInfo.args.forecast.value,
+            identifier: apiInfo.args.identifier.value,
+            level: apiInfo.args.level.value,
+          }
+          init(params)
+        })
+      }
+      const options = { center: [106, 35], zoom: 4 }
+      function multiLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getMultiConfig()
+        // 获取文本配置参数
+        const paramstext = getTextCogtig()
+        // 获取箭头配置参数
+        const paramsArrow = getArrowCogtig()
+        tiffLayers = new blendLayers(map, {
+          url: url,
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          //绘制风向杆
+          tiffLayers.addArrowLayer(paramsArrow).then((layer) => {
+            map.addLayer(layer)
+          })
+        })
+      }
+      function getMultiConfig() {
+        let params = {
+          interpolation: 'grid', // 渐变 linear  区间 nearest  网格 grid
+          layerName: 'multiCogtifLayer',
+          opacity: 0.9,
+          zIndex: 14,
+          colors: [
+            [0, [82, 71, 141, 1]],
+            [1, [85, 78, 177, 1]],
+            [2, [80, 87, 184, 1]],
+            [4, [67, 105, 196, 1]],
+            [6, [64, 160, 180, 1]],
+            [8, [78, 193, 103, 1]],
+            [10, [104, 209, 79, 1]],
+            [12, [157, 221, 68, 1]],
+            [16, [195, 226, 51, 1]],
+            [18, [247, 122, 9, 1]],
+            [20, [251, 60, 60, 1]],
+            [24, [0, 0, 0, 1]],
+            [30, [217, 66, 114, 1]],
+            [36, [147, 23, 78, 1]],
+            [42, [43, 0, 1, 1]],
+            [24, [194, 3, 0, 1]],
+            [30, [217, 66, 114, 1]],
+            [36, [147, 23, 78, 1]],
+            [42, [43, 0, 1, 1]],
+          ],
+        }
+
+        return params
+      }
+      function getTextCogtig() {
+        let params = {
+          layerName: 'textLayer',
+
+          precision: 1, //格网数据显示的小数点的精度
+          opacity: 1, //透明度
+          // maxZoom: 15, // 最大缩放级别
+          zIndex: 200, //图层层级
+          // showTextRange: range,
+          distanceArrow: 80, //距离
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: '18px Calibri,sans-serif',
+                  fill: {
+                    Fill: {
+                      color: '#ff0000',
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: '#ffffff',
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }
+
+        return params
+      }
+      function getArrowCogtig() {
+        let params = {
+          layerName: 'arrowLayer',
+          windType: 'wind', //  arrow 表示箭头  wind 表示风向杆
+          zIndex: 1002,
+          precision: 2, //格网数据显示的小数点的精度
+          distance: 20, //距离
+          style1: {
+            Style: {
+              image: {
+                cme_style_FontSymbol: {
+                  radius: 10,
+                  displacement: [0, 0],
+                  color: 'rgba(0,0,0,200)',
+                },
+              },
+            },
+          },
+        }
+        return params
+      }
+      // 点击按钮时设置地图中心点
+    </script>
+    <script src="/libs/message.js"></script>
+  </body>
+</html>
