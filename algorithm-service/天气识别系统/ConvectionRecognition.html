@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>对流识别</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script src="/libs/polyline.js"></script>
+    <script src="/libs/axios.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D
+
+      let map, vectorS
+      const { blendLayers, style, CMEStyle } = window.CMECore
+      const {
+        Point,
+        LineString,
+        Polygon,
+        Circle: GeomCircle,
+      } = window.CME2D.geom
+      const { GeoJSON } = window.CME2D.format
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
+      const { Vector: VectorLayer } = window.CME2D.layer
+      const { Vector: VectorSource } = window.CME2D.source
+      let tiffLayers = null
+      let micapsStyle = new CMEStyle.cme_polyline()
+      var apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-sdkservice/cmes-sdk/vector/getMultiShapePath',
+        args: {
+          element: {
+            value: '3REF',
+            type: 'string',
+            required: true,
+            desc: '要素',
+          },
+          area: {
+            value: 'CHN',
+            type: 'string',
+            required: true,
+            desc: '区域',
+          },
+          time: {
+            value: '20241124032400',
+            type: 'string',
+            required: true,
+            desc: '时间',
+          },
+        },
+      }
+      function init(params) {
+        axios
+          .get(apiInfo.url, {
+            params: params,
+          })
+          .then((res) => {
+            if (window.postResult) {
+              window.postResult(res.data)
+            }
+            if (vectorS) {
+              vectorS.clear()
+            }
+            let { data: geojson, success } = res.data
+            if (success) {
+              singleLayer(geojson)
+            }
+          })
+      }
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      let mapObj = null
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          let params = {
+            element: apiInfo.args.element.value,
+            area: apiInfo.args.area.value,
+            time: apiInfo.args.time.value,
+          }
+          init(params)
+        })
+      }
+      function singleLayer(geojson) {
+        vectorS = new VectorSource({
+          features: new GeoJSON().readFeatures(geojson),
+        })
+        const vectorLayer = new VectorLayer({
+          source: vectorS,
+          style: {
+            'stroke-color': [0, 0, 255, 1],
+            'stroke-width': 2,
+          },
+        })
+        mapObj.addLayer(vectorLayer)
+      }
+
+      function onRun(params) {
+        init(params)
+      }
+    </script>
+    <script src="/libs/message.js"></script>
+  </body>
+</html>
