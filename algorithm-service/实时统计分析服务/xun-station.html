@@ -49,13 +49,13 @@
             desc: '查询类型',
           },
           startTime: {
-            value: '2024-07-11 00:00:00',
+            value: '2024-08-01',
             type: 'string',
             required: true,
             desc: '开始时间',
           },
           endTime: {
-            value: '2024-07-17 00:00:00',
+            value: '2024-09-01',
             type: 'string',
             required: true,
             desc: '结束时间',
@@ -87,23 +87,16 @@
         },
       }
 
-      const _request = (val) => {
+      const _request = (_params) => {
         const params = {
-          areaCode: '110000',
-          areaName: '北京',
-          elementMark: ['sumPre'],
-          endTime: '2024-09-01',
           isMoreTime: true,
           page: 1,
           preType: '08-08',
           requestType: 'city',
-          size: 78,
           sizeLength: 78,
-          sort: 'DESC',
-          sortName: 'sumPre',
           staType: 'countrySta',
-          startTime: '2024-08-01',
           timeOption: 'ten',
+          ..._params,
         }
         fetch(apiInfo.url, {
           method: 'POST',
@@ -116,6 +109,9 @@
           .then((res) => res.json())
           .then((res) => {
             if (res.code === 200) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
               let { data } = res
               let list = data.list || []
               let xAxis = [],
@@ -237,7 +233,12 @@
       }
       window.onload = function () {
         initEchart()
-        onRun()
+        let apiArgs = apiInfo.args
+        let params = {}
+        for (let key in apiArgs) {
+          params[key] = apiArgs[key].value
+        }
+        onRun(params)
         window.addEventListener('resize', () => {
           chart?.resize()
         })

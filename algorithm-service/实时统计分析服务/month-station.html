@@ -48,13 +48,13 @@
             desc: '查询类型',
           },
           startTime: {
-            value: '2024-07-11 00:00:00',
+            value: '2024-01-01',
             type: 'string',
             required: true,
             desc: '开始时间',
           },
           endTime: {
-            value: '2024-07-17 00:00:00',
+            value: '2024-10-01',
             type: 'string',
             required: true,
             desc: '结束时间',
@@ -72,7 +72,7 @@
             desc: '分页大小',
           },
           sortName: {
-            value: 'maxPre',
+            value: 'sumPre',
             type: 'string',
             required: true,
             desc: '排序字段',
@@ -86,32 +86,24 @@
         },
       }
 
-      const _request = (val) => {
+      const _request = (_params) => {
         const params = {
-          areaCode: '110000',
-          areaName: '北京',
-          elementMark: ['maxPre'],
           endDay: '',
           endMon: '',
-          endTime: '2024-10-01',
           endYear: '',
           ids: [],
           isMoreTime: true,
           mon: '',
           noIds: [],
           otherMark: [],
-          page: 1,
           preType: '08-08',
           requestType: 'province',
           searcheTypes: ['sumPre'],
-          size: 60,
           sizeLength: 60,
-          sort: 'DESC',
-          sortName: 'sumPre',
           staType: 'countrySta',
           startDay: '',
           startMon: '',
-          startTime: '2024-01-01',
+          ..._params,
         }
         fetch(apiInfo.url, {
           method: 'POST',
@@ -124,6 +116,9 @@
           .then((res) => res.json())
           .then((res) => {
             if (res.code === 200) {
+              if (window.postResult) {
+                window.postResult(res)
+              }
               let { data } = res
               let list = data.list || []
               let xAxis = [],
@@ -245,7 +240,12 @@
       }
       window.onload = function () {
         initEchart()
-        onRun()
+        let apiArgs = apiInfo.args
+        let params = {}
+        for (let key in apiArgs) {
+          params[key] = apiArgs[key].value
+        }
+        onRun(params)
         window.addEventListener('resize', () => {
           chart?.resize()
         })
