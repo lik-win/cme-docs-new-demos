@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>智能研判-多格点场融合算法</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script src="/libs/axios.js"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D
+      let mapObj, vectorS, tiffLayers
+      const { blendLayers, style } = window.CMECore
+      const {
+        Point,
+        LineString,
+        Polygon,
+        Circle: GeomCircle,
+      } = window.CME2D.geom
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
+      const { Vector: VectorLayer } = window.CME2D.layer
+      const { Vector: VectorSource } = window.CME2D.source
+      const apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-gridstat/gridstat/mode/gridfusion',
+        args: {
+          type: {
+            value: '5',
+            type: 'string',
+            required: true,
+            desc: '算法方式',
+          },
+        },
+      }
+      function init(params) {
+        axios
+          .get(apiInfo.url, {
+            params,
+          })
+          .then((res) => {
+            if (window.postResult) {
+              window.postResult(res.data)
+            }
+            let {
+              data: { data: tifPath },
+              success,
+            } = res.data
+            if (success) {
+              multiLayer(mapObj, tifPath)
+            }
+          })
+      }
+      function multiLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getMultiConfig()
+        tiffLayers = new blendLayers(map, {
+          url: url,
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer)
+          })
+        })
+      }
+      function getMultiConfig() {
+        let params = {
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
+          layerName: 'multiCogtifLayer',
+          opacity: 1,
+          zIndex: 14,
+          colors: [
+            [-70, [115, 70, 105, 1]],
+            [-55, [202, 172, 195, 1]],
+            [-40, [162, 70, 145, 1]],
+            [-25, [143, 89, 169, 1]],
+            [-15, [157, 219, 217, 1]],
+            [-8, [106, 191, 181, 1]],
+            [-4, [100, 166, 189, 1]],
+            [0, [93, 133, 198, 1]],
+            [1, [68, 125, 99, 1]],
+            [10, [128, 147, 24, 1]],
+            [21, [243, 183, 4, 1]],
+            [30, [232, 83, 25, 1]],
+            [47, [71, 14, 0, 1]],
+          ],
+        }
+
+        return params
+      }
+      function initMap(mapEl) {
+        vectorS = new VectorSource({
+          wrapX: true,
+        })
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 9999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+            new VectorLayer({
+              source: vectorS,
+              name: 'Point',
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      function onRun(params) {
+        // 请求新数据之前删除旧图层
+        if (tiffLayers?.cogLayer) {
+          mapObj.removeLayer(tiffLayers.cogLayer)
+        }
+        init(params)
+      }
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          let params = {
+            type: apiInfo.args.type.value,
+          }
+          init(params)
+        })
+      }
+    </script>
+    <script src="/libs/message.js"></script>
+  </body>
+</html>
