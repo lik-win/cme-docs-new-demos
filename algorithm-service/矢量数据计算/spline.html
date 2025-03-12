@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -51,47 +51,53 @@
     <script src="/libs/axios.js"></script>
     <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
     <script type="text/javascript">
-      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D
-      const { Stroke, Style } = window.CME2D.style
-      const { GeoJSON } = window.CME2D.format
-      const { Vector: VectorLayer } = window.CME2D.layer
-      const { Vector: VectorSource } = window.CME2D.source
+      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D;
+      const { Stroke, Style } = window.CME2D.style;
+      const { GeoJSON } = window.CME2D.format;
+      const { Vector: VectorLayer } = window.CME2D.layer;
+      const { Vector: VectorSource } = window.CME2D.source;
       var apiInfo = {
-        url: 'http://10.40.88.119:11000/cmes-base-sdkservice/cmes-sdk/vector/spline3',
+        url: "http://10.40.88.119:11000/cmes-base-sdkservice/cmes-sdk/vector/spline3",
         args: {
           dataPath: {
-            value: 'http://10.40.88.119:18097/sdk/demo/demo1.geojson',
-            type: 'string',
+            value: "http://10.40.88.119:18097/sdk/demo/demo1.geojson",
+            type: "string",
             required: true,
-            desc: 'geojson数据',
+            desc: "geojson数据",
+          },
+          ismooth: {
+            value: "3",
+            type: "number",
+            required: true,
+            desc: "平滑插值点个数",
           },
         },
-      }
+      };
 
-      let vectorSource, vectorSource2
+      let vectorSource, vectorSource2;
       function init(params) {
         if (vectorSource) {
-          vectorSource.clear()
+          vectorSource.clear();
         }
         if (vectorSource2) {
-          vectorSource2.clear()
+          vectorSource2.clear();
         }
 
-        axios.get(apiInfo.args.dataPath.value).then((res) => {
-          let geojson = res.data
-          renderOldLayer(geojson)
-        })
+        axios.get(params.dataPath).then((res) => {
+          let geojson = res.data;
+          renderOldLayer(geojson);
+        });
         axios
           .get(apiInfo.url, {
             params,
           })
           .then((res) => {
-            let geojsonUrl = res.data.data
+            let geojsonUrl = res.data.data;
             axios.get(geojsonUrl).then((res) => {
-              let geojson = res.data
-              renderLayer(geojson)
-            })
-          })
+              let geojson = res.data;
+              renderLayer(geojson);
+            });
+          });
       }
       function initMap(mapEl) {
         const map = new CMEMap({
@@ -100,68 +106,69 @@
             new layer.Tile({
               zIndex: 999,
               source: new source.XYZ({
-                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+                url: "http://10.0.54.106:8080/windy/{z}/{x}/{y}.png", // 内网地址
               }),
             }),
           ],
           view: new View({
             //地图视图
             center: [106, 35],
-            projection: 'EPSG:4326',
+            projection: "EPSG:4326",
             zoom: 5,
             wrapX: false,
           }), //地图设置
           controls: [], //取消地图操作
-        })
-        return map
+        });
+        return map;
       }
 
       let mapObj = null,
-        mapObj2 = null
+        mapObj2 = null;
       window.onload = function () {
-        const mapEl = document.querySelector('#map')
-        mapObj = initMap(document.querySelector('#map1'))
-        mapObj2 = initMap(document.querySelector('#map2'))
-        mapObj.once('postrender', function () {
+        const mapEl = document.querySelector("#map");
+        mapObj = initMap(document.querySelector("#map1"));
+        mapObj2 = initMap(document.querySelector("#map2"));
+        mapObj.once("postrender", function () {
           let params = {
             dataPath: apiInfo.args.dataPath.value,
-          }
-          init(params)
-        })
-      }
+            ismooth: apiInfo.args.ismooth.value,
+          };
+          init(params);
+        });
+      };
 
       function renderOldLayer(geojson) {
         vectorSource2 = new VectorSource({
           features: new GeoJSON().readFeatures(geojson),
-        })
+        });
         const vectorLayer = new VectorLayer({
           source: vectorSource2,
           style: new Style({
             stroke: new Stroke({
-              color: '#0000ff',
+              color: "#0000ff",
               width: 2,
             }),
           }),
-        })
-        mapObj.addLayer(vectorLayer)
+        });
+        mapObj.addLayer(vectorLayer);
       }
       function renderLayer(geojson) {
         vectorSource = new VectorSource({
           features: new GeoJSON().readFeatures(geojson),
-        })
+        });
         const vectorLayer = new VectorLayer({
           source: vectorSource,
           style: new Style({
             stroke: new Stroke({
-              color: '#FFCB99',
+              color: "#FFCB99",
               width: 2,
             }),
           }),
-        })
-        mapObj2.addLayer(vectorLayer)
+        });
+        mapObj2.addLayer(vectorLayer);
       }
       function onRun(params) {
-        init(params)
+        init(params);
       }
     </script>
     <script src="/libs/message.js"></script>
