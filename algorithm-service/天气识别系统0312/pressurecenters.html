@@ -76,8 +76,14 @@
           } = res.data;
           if (success) {
             if (element == "GHT" || element == "GH") {
-              let geojson = JSON.parse(sysGeojson);
-              addLayer(geojson);
+              if (lineGeojson) {
+                let geojson = JSON.parse(lineGeojson);
+                addLayer(geojson);
+              }
+              if (sysGeojson) {
+                let features = JSON.parse(sysGeojson);
+                addLayer(features);
+              }
             }
           }
         });
@@ -116,7 +122,7 @@
               },
             ],
             //等值线值对应的字段
-            textValue: "level",
+            textValue: "value",
             //等值线值对应的颜色
             fontColor: "#ffffff",
             //等值线值对应的大小
