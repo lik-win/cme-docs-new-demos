@@ -68,8 +68,7 @@
           }
           if (contourLayers) {
             mapObj.removeLayer(contourLayers);
-            contourLayers = null;
-            // vectorS.clear()
+            vectorS.clear();
           }
           let {
             data: { element, tifPath, sysGeojson, lineGeojson },
@@ -77,8 +76,14 @@
           } = res.data;
           if (success) {
             if (element == "GHT" || element == "GH") {
-              let geojson = JSON.parse(lineGeojson);
-              addLayer(geojson);
+              if (lineGeojson) {
+                let geojson = JSON.parse(lineGeojson);
+                addLayer(geojson);
+              }
+              if (sysGeojson) {
+                let features = JSON.parse(sysGeojson);
+                addLayer(features);
+              }
             }
           }
         });

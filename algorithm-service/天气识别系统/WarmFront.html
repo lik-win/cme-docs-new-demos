@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -15,175 +15,165 @@
     <script src="/libs/axios.js"></script>
     <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
     <script type="text/javascript">
-      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D
+      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D;
 
-      let map, vectorS
-      const { blendLayers, style, CMEStyle } = window.CMECore
-      const {
-        Point,
-        LineString,
-        Polygon,
-        Circle: GeomCircle,
-      } = window.CME2D.geom
-      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
-      const { Vector: VectorLayer } = window.CME2D.layer
-      const { Vector: VectorSource } = window.CME2D.source
-      let tiffLayers = null
-      let micapsStyle = new CMEStyle.cme_polyline()
+      let map, vectorS;
+      const { blendLayers, style, CMEStyle } = window.CMECore;
+      const { Point, LineString, Polygon, Circle: GeomCircle } = window.CME2D.geom;
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style;
+      const { Vector: VectorLayer } = window.CME2D.layer;
+      const { Vector: VectorSource } = window.CME2D.source;
+      let tiffLayers = null;
+      let micapsStyle = new CMEStyle.cme_polyline();
       var apiInfo = {
-        url: 'http://10.40.88.119:11000/cmes-base-sysidentify/sysIdentity/algorithm/getResponseFromFile',
+        url: "http://10.40.88.119:11000/cmes-base-sysidentify/sysIdentity/algorithm/getSkyByDate",
         args: {
           dateStr: {
-            value: '2024-12-19 00:00:00',
-            type: 'string',
+            value: "2025-03-08 00:00:00",
+            type: "string",
             required: true,
-            desc: '开始时间',
+            desc: "开始时间",
           },
           forecast: {
-            value: '12',
-            type: 'string',
+            value: "12",
+            type: "string",
             required: true,
-            desc: '时次',
+            desc: "时次",
           },
           identifier: {
-            value: 'warm_front',
-            type: 'string',
+            value: "warm_front",
+            type: "string",
             required: true,
-            desc: '要素',
+            desc: "要素",
           },
           level: {
-            value: '85000',
-            type: 'string',
+            value: "85000",
+            type: "string",
             required: true,
-            desc: '层级',
+            desc: "层级",
           },
         },
-      }
+      };
       function handleQueryString(params) {
-        let str = ''
+        let str = "";
         for (let key in params) {
-          str += `${key}=${params[key]}&`
+          str += `${key}=${params[key]}&`;
         }
-        return str.slice(0, -1)
+        return str.slice(0, -1);
       }
       function init(params) {
         axios.get(apiInfo.url + `?${handleQueryString(params)}`).then((res) => {
           if (window.postResult) {
-            window.postResult(res.data)
+            window.postResult(res.data);
           }
           if (tiffLayers?.gridLayer) {
-            mapObj.removeLayer(tiffLayers?.gridLayer)
-            vectorS.clear()
+            mapObj.removeLayer(tiffLayers?.gridLayer);
+            vectorS.clear();
           }
           let {
             data: { element, tifPath, sysGeojson },
             success,
-          } = res.data
+          } = res.data;
           if (success) {
-            if (element == 'TMP' || element == 'T') {
-              let urlNum = String(tifPath.slice(7, 19)).replace(/\./g, '')
-              let url =
-                'http://10.1.64.146/bm_cogtif/cmes-' +
-                urlNum +
-                tifPath.slice(19)
-              singleLayer(mapObj, url)
+            if (element == "TMP" || element == "T") {
+              let urlNum = String(tifPath.slice(7, 19)).replace(/\./g, "");
+              let url = "http://10.1.64.146/bm_cogtif/cmes-" + urlNum + tifPath.slice(19);
+              singleLayer(mapObj, url);
               if (sysGeojson) {
-                sysGeojson = JSON.parse(sysGeojson)
-                let features = sysGeojson?.features
+                sysGeojson = JSON.parse(sysGeojson);
+                let features = sysGeojson?.features;
                 features &&
                   features?.map((item) => {
-                    let type = item.geometry.type
-                    if (type == 'LineString') {
+                    let type = item.geometry.type;
+                    if (type == "LineString") {
                       const feature = new Feature({
                         geometry: new LineString(item.geometry.coordinates),
-                      })
-                      feature.setStyle(
-                        micapsStyle.getCme_LINES_19(polylineStyleJson.LINES_20),
-                      )
-                      vectorS.addFeature(feature)
+                      });
+                      feature.setStyle(micapsStyle.getCme_LINES_19(polylineStyleJson.LINES_20));
+                      vectorS.addFeature(feature);
                     }
-                  })
+                  });
               }
             }
           }
-        })
+        });
       }
       function initMap(mapEl) {
         vectorS = new VectorSource({
           wrapX: true,
-        })
+        });
         const map = new CMEMap({
           target: mapEl, //挂载实例
           layers: [
             new layer.Tile({
               zIndex: 999,
               source: new source.XYZ({
-                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+                url: "http://10.0.54.106:8080/windy/{z}/{x}/{y}.png", // 内网地址
               }),
             }),
             new VectorLayer({
               source: vectorS,
               zIndex: 100,
-              name: 'Point',
+              name: "Point",
             }),
           ],
           view: new View({
             //地图视图
             center: [106, 35],
-            projection: 'EPSG:4326',
+            projection: "EPSG:4326",
             zoom: 5,
             wrapX: true,
           }), //地图设置
           controls: [], //取消地图操作
-        })
-        return map
+        });
+        return map;
       }
 
-      let mapObj = null
+      let mapObj = null;
       window.onload = function () {
-        const mapEl = document.querySelector('#map')
-        mapObj = initMap(mapEl)
-        mapObj.once('postrender', function () {
+        const mapEl = document.querySelector("#map");
+        mapObj = initMap(mapEl);
+        mapObj.once("postrender", function () {
           let params = {
             dateStr: apiInfo.args.dateStr.value,
             forecast: apiInfo.args.forecast.value,
             identifier: apiInfo.args.identifier.value,
             level: apiInfo.args.level.value,
-          }
-          init(params)
-        })
-      }
+          };
+          init(params);
+        });
+      };
       function singleLayer(map, url) {
         // let url =  "/data/tif/T_850_18010820.tif";
         // 获取色斑图配置信息
-        const params = getsingleConfig()
+        const params = getsingleConfig();
         // 获取文本配置参数
-        const paramstext = getTextCogtig()
+        const paramstext = getTextCogtig();
         // 获取箭头配置参数
         tiffLayers = new blendLayers(map, {
           url: url,
           metadata: {
-            unit: 'C', //单位 科尔文类型的tif转换温度
+            unit: "C", //单位 科尔文类型的tif转换温度
           },
-        })
+        });
         //绘制色斑图
         tiffLayers._render(params).then((object) => {
           tiffLayers.addCogeoLayer(params).then((layer) => {
-            map.addLayer(layer)
-          })
+            map.addLayer(layer);
+          });
 
           // // //绘制网格值
           // tiffLayers.addTextLayer(paramstext).then((layer) => {
           //   map.addLayer(layer)
           // })
-        })
+        });
       }
 
       function getsingleConfig() {
         let params = {
-          layerName: 'cogtifLayer', //必须有，而且必须是唯一值
+          layerName: "cogtifLayer", //必须有，而且必须是唯一值
           opacity: 0.8,
-          interpolation: 'nearest', // 渐变 linear  区间 nearest  网格 grid
+          interpolation: "nearest", // 渐变 linear  区间 nearest  网格 grid
           colors: [
             [-36, [128, 0, 124]],
             [-32, [0, 47, 134]],
@@ -208,13 +198,13 @@
             [40, [153, 51, 1]],
             [100, [71, 14, 0]],
           ],
-        }
-        return params
+        };
+        return params;
       }
 
       function getTextCogtig() {
         let params = {
-          layerName: 'textLayer', //必须有，而且必须是唯一值
+          layerName: "textLayer", //必须有，而且必须是唯一值
           opacity: 1, //透明度
           zIndex: 100, //层级
           textStyle: {
@@ -222,15 +212,15 @@
             Style: {
               text: {
                 Text: {
-                  font: '18px Calibri,sans-serif',
+                  font: "18px Calibri,sans-serif",
                   fill: {
                     Fill: {
-                      color: '#ff0000',
+                      color: "#ff0000",
                     },
                   },
                   stroke: {
                     Stroke: {
-                      color: '#ffffff',
+                      color: "#ffffff",
                       width: 4,
                     },
                   },
@@ -238,12 +228,12 @@
               },
             },
           },
-        }
+        };
 
-        return params
+        return params;
       }
       function onRun(params) {
-        init(params)
+        init(params);
       }
     </script>
     <script src="/libs/message.js"></script>

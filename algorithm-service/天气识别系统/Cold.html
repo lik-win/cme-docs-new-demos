@@ -1,218 +1,210 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>冷锋</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>冷锋</title>
-  <link rel="stylesheet" href="/demo.css" />
-</head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script src="/libs/polyline.js"></script>
+    <script src="/libs/axios.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer, proj, Feature } = window.CME2D;
+      const { contourLayer, style, Layer, CMEStyle } = window.CMECore;
+      let map, vectorS;
+      const { Point, LineString } = window.CME2D.geom;
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style;
+      let micapsStyle = new CMEStyle.cme_polyline();
+      let contourLayers = null;
+      let mapObj = null;
+      var apiInfo = {
+        url: "http://10.40.88.119:11000/cmes-base-sysidentify/sysIdentity/algorithm/getSkyByDate",
+        args: {
+          dateStr: {
+            value: "2025-03-08 00:00:00",
+            type: "string",
+            required: true,
+            desc: "开始时间",
+          },
+          forecast: {
+            value: "12",
+            type: "string",
+            required: true,
+            desc: "时次",
+          },
+          identifier: {
+            value: "cold_front",
+            type: "string",
+            required: true,
+            desc: "要素",
+          },
+          level: {
+            value: "85000",
+            type: "string",
+            required: true,
+            desc: "层级",
+          },
+        },
+      };
 
-<body>
-  <div id="map"></div>
-  <script type="text/javascript" src="/libs/cme2d.js"></script>
-  <script src="/libs/polyline.js"></script>
-  <script src="/libs/axios.js"></script>
-  <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
-  <script type="text/javascript">
-    const { Map: CMEMap, View, source, layer, proj, Feature } = window.CME2D
-    const { contourLayer, style, Layer, CMEStyle } = window.CMECore
-    let map, vectorS
-    const { Point, LineString } = window.CME2D.geom
-    const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
-    let micapsStyle = new CMEStyle.cme_polyline()
-    let contourLayers = null
-    let mapObj = null
-    var apiInfo = {
-      url: 'http://10.40.88.119:11000/cmes-base-sysidentify/sysIdentity/algorithm/getResponseFromFile',
-      args: {
-        dateStr: {
-          value: '2024-12-19 00:00:00',
-          type: 'string',
-          required: true,
-          desc: '开始时间',
-        },
-        forecast: {
-          value: '12',
-          type: 'string',
-          required: true,
-          desc: '时次',
-        },
-        identifier: {
-          value: 'cold_front',
-          type: 'string',
-          required: true,
-          desc: '要素',
-        },
-        level: {
-          value: '85000',
-          type: 'string',
-          required: true,
-          desc: '层级',
-        },
-      },
-    }
-
-    function handleQueryString(params) {
-      let str = ''
-      for (let key in params) {
-        str += `${key}=${params[key]}&`
+      function handleQueryString(params) {
+        let str = "";
+        for (let key in params) {
+          str += `${key}=${params[key]}&`;
+        }
+        return str.slice(0, -1);
       }
-      return str.slice(0, -1)
-    }
 
-    function init(params) {
-      axios.get(apiInfo.url + `?${handleQueryString(params)}`).then((res) => {
-        if (window.postResult) {
-          window.postResult(res.data)
-        }
-        if (contourLayers) {
-          mapObj.removeLayer(contourLayers)
-          vectorS.clear()
-        }
-        let {
-          data: { element, tifPath, sysGeojson, lineGeojson },
-          success,
-        } = res.data
-        if (success) {
-          if (element == 'GHT' || element == 'GH') {
-            let urlNum = String(tifPath.slice(7, 19)).replace(/\./g, '')
-            let url =
-              'http://10.1.64.146/bm_cogtif/cmes-' + urlNum + tifPath.slice(19)
-            let geojson = JSON.parse(lineGeojson)
-            console.log(geojson, 'geojson')
-            addLayer(geojson)
-            if (sysGeojson) {
-              console.log('sysGeojson =>', sysGeojson)
-              let features = JSON.parse(sysGeojson).features
-              features.map((item) => {
-                console.log(item.geometry.coordinates, 'sysGeojson')
-                let type = item.geometry.type
-                if (type == 'LineString') {
-                  const feature = new Feature({
-                    geometry: new LineString(item.geometry.coordinates),
-                  })
-                  feature.setStyle(
-                    micapsStyle.getCme_LINES_18(polylineStyleJson.LINES_18),
-                  )
-                  vectorS.addFeature(feature)
-                }
-              })
+      function init(params) {
+        axios.get(apiInfo.url + `?${handleQueryString(params)}`).then((res) => {
+          if (window.postResult) {
+            window.postResult(res.data);
+          }
+          if (contourLayers) {
+            mapObj.removeLayer(contourLayers);
+            vectorS.clear();
+          }
+          let {
+            data: { element, tifPath, sysGeojson, lineGeojson },
+            success,
+          } = res.data;
+          if (success) {
+            if (element == "GHT" || element == "GH") {
+              let urlNum = String(tifPath.slice(7, 19)).replace(/\./g, "");
+              let url = "http://10.1.64.146/bm_cogtif/cmes-" + urlNum + tifPath.slice(19);
+              let geojson = JSON.parse(lineGeojson);
+              addLayer(geojson);
+              if (sysGeojson) {
+                let features = JSON.parse(sysGeojson).features;
+                features.map((item) => {
+                  let type = item.geometry.type;
+                  if (type == "LineString") {
+                    const feature = new Feature({
+                      geometry: new LineString(item.geometry.coordinates),
+                    });
+                    feature.setStyle(micapsStyle.getCme_LINES_18(polylineStyleJson.LINES_18));
+                    vectorS.addFeature(feature);
+                  }
+                });
+              }
             }
           }
-        }
-      })
-    }
-
-    function initMap(mapEl) {
-      vectorS = new source.Vector()
-      const map = new CMEMap({
-        target: mapEl, //挂载实例
-        layers: [
-          new layer.Tile({
-            source: new source.XYZ({
-              url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
-            }),
-          }),
-          new layer.Vector({
-            source: vectorS,
-            layerName: 'line',
-          }),
-        ],
-        view: new View({
-          //地图视图
-          center: [125, 45],
-          projection: 'EPSG:4326',
-          zoom: 4,
-          wrapX: true,
-        }), //地图设置
-        controls: [], //取消地图操作
-      })
-      return map
-    }
-
-    window.onload = function () {
-      const mapEl = document.querySelector('#map')
-      mapObj = initMap(mapEl)
-      mapObj.once('postrender', function () {
-        let params = {
-          dateStr: apiInfo.args.dateStr.value,
-          forecast: apiInfo.args.forecast.value,
-          identifier: apiInfo.args.identifier.value,
-          level: apiInfo.args.level.value,
-        }
-        init(params)
-      })
-    }
-
-    async function addLayer(json) {
-      let params = {
-        // 图层配置
-        colorRamp: [
-          [500, 'rgba(0, 0, 255, 1)'], // 大蓝
-          [510, 'rgba(20, 40, 255, 1)'], // 深蓝
-          [520, 'rgba(50, 80, 255, 1)'], // 中蓝
-          [530, 'rgba(255, 0, 0, 1)'], // 大红
-          [540, 'rgba(255, 50, 50, 1)'], // 红
-          [550, 'rgba(180, 0, 255, 1)'], // 大紫
-          [560, 'rgba(150, 0, 180, 1)'], // 紫
-          [570, 'rgba(100, 0, 140, 1)'], // 深紫
-          [590, 'rgba(255, 105, 180, 1)'], // 熏衣草粉
-        ],
-        // 设置等值线样式
-        lineStyle: {
-          // 是否使用图例
-          useColorRamp: false,
-          color: 'rgba(0,0,200,0.2)',
-
-          special: [
-            {
-              value: 580,
-              width: 10,
-              color: '#ffff00',
-            },
-            {
-              value: 560,
-              width: 5,
-              color: '#ff0000',
-            },
-          ],
-          //等值线值对应的字段
-          textValue: 'level',
-          //等值线值对应的大小
-          fontSize: 16,
-          // 是否显示标签
-          showLabel: true,
-        },
-        // 设置等值线标签样式
-        lineLabelStyle: {
-          useColorRamp: false, //是否使用渐变颜色的渲染文字的背景框
-          //等值线值对应的颜色
-          fontColor: 'rgba(0,0,0,255)',
-          //等值线值对应的大小
-          fontSize: 24, // 标签背景颜色
-          fontBackColor: 'transparent', //文字的背景框颜色
-        },
-        // 设置极值点样式
-        extremeStyle: {
-          // 是否使用图例
-          // useColorRamp: false,
-          // 是否显示标签
-          showLabel: true,
-          textValue: 'value',
-          fontSize: 35,
-        },
-        projection: mapObj.getView().getProjection().getCode() || 'EPSG:3857',
+        });
       }
-      contourLayers = new contourLayer(mapObj, params)
-      mapObj.addLayer(contourLayers)
-      await contourLayers.loadGeojson(json, 'normal')
-    }
-    function onRun(params) {
-      init(params)
-    }
-  </script>
-  <script src="/cme/libs/message.js"></script>
-</body>
 
+      function initMap(mapEl) {
+        vectorS = new source.Vector();
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              source: new source.XYZ({
+                url: "http://10.0.54.106:8080/windy/{z}/{x}/{y}.png", // 内网地址
+              }),
+            }),
+            new layer.Vector({
+              source: vectorS,
+              layerName: "line",
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [125, 45],
+            projection: "EPSG:4326",
+            zoom: 4,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        });
+        return map;
+      }
+
+      window.onload = function () {
+        const mapEl = document.querySelector("#map");
+        mapObj = initMap(mapEl);
+        mapObj.once("postrender", function () {
+          let params = {
+            dateStr: apiInfo.args.dateStr.value,
+            forecast: apiInfo.args.forecast.value,
+            identifier: apiInfo.args.identifier.value,
+            level: apiInfo.args.level.value,
+          };
+          init(params);
+        });
+      };
+
+      async function addLayer(json) {
+        let params = {
+          // 图层配置
+          colorRamp: [
+            [500, "rgba(0, 0, 255, 1)"], // 大蓝
+            [510, "rgba(20, 40, 255, 1)"], // 深蓝
+            [520, "rgba(50, 80, 255, 1)"], // 中蓝
+            [530, "rgba(255, 0, 0, 1)"], // 大红
+            [540, "rgba(255, 50, 50, 1)"], // 红
+            [550, "rgba(180, 0, 255, 1)"], // 大紫
+            [560, "rgba(150, 0, 180, 1)"], // 紫
+            [570, "rgba(100, 0, 140, 1)"], // 深紫
+            [590, "rgba(255, 105, 180, 1)"], // 熏衣草粉
+          ],
+          // 设置等值线样式
+          lineStyle: {
+            // 是否使用图例
+            useColorRamp: false,
+            color: "rgba(0,0,200,0.2)",
+
+            special: [
+              {
+                value: 580,
+                width: 10,
+                color: "#ffff00",
+              },
+              {
+                value: 560,
+                width: 5,
+                color: "#ff0000",
+              },
+            ],
+            //等值线值对应的字段
+            textValue: "value",
+            //等值线值对应的大小
+            fontSize: 16,
+            // 是否显示标签
+            showLabel: true,
+          },
+          // 设置等值线标签样式
+          lineLabelStyle: {
+            useColorRamp: false, //是否使用渐变颜色的渲染文字的背景框
+            //等值线值对应的颜色
+            fontColor: "rgba(0,0,0,255)",
+            //等值线值对应的大小
+            fontSize: 24, // 标签背景颜色
+            fontBackColor: "transparent", //文字的背景框颜色
+          },
+          // 设置极值点样式
+          extremeStyle: {
+            // 是否使用图例
+            // useColorRamp: false,
+            // 是否显示标签
+            showLabel: true,
+            textValue: "value",
+            fontSize: 35,
+          },
+          projection: mapObj.getView().getProjection().getCode() || "EPSG:3857",
+        };
+        contourLayers = new contourLayer(mapObj, params);
+        mapObj.addLayer(contourLayers);
+        await contourLayers.loadGeojson(json, "normal");
+      }
+      function onRun(params) {
+        init(params);
+      }
+    </script>
+    <script src="/cme/libs/message.js"></script>
+  </body>
 </html>
