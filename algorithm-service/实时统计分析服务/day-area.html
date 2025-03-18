@@ -86,8 +86,19 @@
         },
       }
 
+      const handleParams = (params) => {
+        let { startTime, endTime } = params
+        params.startYear = dayjs(startTime).format('YYYY')
+        params.startMon = dayjs(startTime).format('MM')
+        params.startDay = dayjs(startTime).format('DD')
+        params.endYear = dayjs(endTime).format('YYYY')
+        params.endMon = dayjs(endTime).format('MM')
+        params.endDay = dayjs(endTime).format('DD')
+        return params
+      }
+
       const _request = (_params) => {
-        const params = {
+        const params = handleParams({
           avgSumTempThreshold: 10,
           bigWindThreshold: 10.8,
           endDay: '',
@@ -113,7 +124,7 @@
           timeOption: 'day',
           year: '',
           ..._params,
-        }
+        })
         fetch(apiInfo.url, {
           method: 'POST',
           headers: {
@@ -136,7 +147,9 @@
                 xAxis.push(list[i].city)
                 yAxis.push(Number(list[i].maxSumPre))
               }
-              let time = `（${dayjs(params.startTime).format('MM') || '-'}月${dayjs(params.startTime).format('DD') || '-'}日~${dayjs(params.endTime).format('MM') || '-'}月${dayjs(params.endTime).format('DD') || '-'}日）`
+              let time = `（${dayjs(params.startTime).format('MM') || '-'}月${dayjs(params.startTime).format('DD') || '-'}日~${
+                dayjs(params.endTime).format('MM') || '-'
+              }月${dayjs(params.endTime).format('DD') || '-'}日）`
               option.title.text = `累计降水量区域统计图${time}`
               option.xAxis.data = xAxis
               option.series = [

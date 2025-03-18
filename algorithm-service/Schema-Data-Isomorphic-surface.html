@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>模式数据等值面分析算法服务</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <link rel="stylesheet" href="/libs/layui.css" />
+    <script type="text/javascript" src="/libs/layui.js"></script>
+    <script src="/libs/dayjs.js"></script>
+    <script src="/libs/axios.js"></script>
+    <script type="text/javascript">
+      const { Map: olmap, View, source, layer, Feature } = window.CME2D
+      let map, vectorS
+      const module = {}
+      const { blendLayers, style } = window.CMECore
+      const {
+        Point,
+        LineString,
+        Polygon,
+        Circle: GeomCircle,
+      } = window.CME2D.geom
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
+      const { Vector: VectorLayer } = window.CME2D.layer
+      const { Vector: VectorSource } = window.CME2D.source
+      const apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-sdkservice/cmes-sdk/vector/creatVectorData',
+        args: {
+          tifPath: {
+            value:
+              'http://10.40.88.119:18097/point/pre_hour/20241211/tif/pre_hour_2024121016_2024121106_countrySta.tif',
+            type: 'string',
+            required: true,
+            desc: 'tif地址',
+          },
+          interval: {
+            value: '0.1,2,5,10,25,50,100,250,9999',
+            type: 'string',
+            required: true,
+            desc: '图例间隔',
+          },
+          type: {
+            value: 'polygon',
+            type: 'string',
+            required: true,
+            desc: '类型',
+          },
+        },
+      }
+      function initMap(mapEl) {
+        vectorS = new VectorSource({
+          wrapX: true,
+        })
+        const map = new olmap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 99,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+            new VectorLayer({
+              source: vectorS,
+              name: 'Point',
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      let mapObj = null
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(mapEl)
+        mapObj.once('postrender', function () {
+          let params = {
+            tifPath: apiInfo.args.tifPath.value,
+            type: apiInfo.args.type.value,
+            interval: apiInfo.args.interval.value,
+          }
+          init(params)
+        })
+      }
+      function handleQueryString(params) {
+        let str = ''
+        for (let key in params) {
+          str += `${key}=${params[key]}&`
+        }
+        return str.slice(0, -1)
+      }
+      function init(paramsd) {
+        let params = {
+          tifPath: paramsd.tifPath,
+          type: paramsd.type,
+          interval: paramsd.interval,
+          smoothingFactor: '1',
+        }
+        let color = [
+          [0, 'rgba(255,255,255,0)'],
+          [0.1, 'rgba(166, 242,143,1)'],
+          [10, 'rgba(61,186,61,1)'],
+          [25, 'rgba(97, 184,255,1)'],
+          [50, 'rgba(0, 0,255,1)'],
+          [100, 'rgba(250, 0,250,1)'],
+          [250, 'rgba(128, 0,64,1)'],
+        ]
+        axios
+          .get(apiInfo.url + `?${handleQueryString(params)}`)
+          .then(function (res) {
+            if (window.postResult) {
+              window.postResult(res.data)
+            }
+            axios.get(res.data.data).then((d) => {
+              module.addGeojsonLayer(mapObj, d.data, color)
+            })
+          })
+      }
+      function onRun(params) {
+        init(params)
+      }
+    </script>
+    <script type="module">
+      import { addGeojsonLayer } from '/public/libs/common.js'
+      module.addGeojsonLayer = addGeojsonLayer
+    </script>
+    <script src="/libs/message.js"></script>
+  </body>
+</html>

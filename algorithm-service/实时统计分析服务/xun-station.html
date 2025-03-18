@@ -87,8 +87,19 @@
         },
       }
 
+      const handleParams = (params) => {
+        let { startTime, endTime } = params
+        params.startYear = dayjs(startTime).format('YYYY')
+        params.startMon = dayjs(startTime).format('MM')
+        params.startDay = dayjs(startTime).format('DD')
+        params.endYear = dayjs(endTime).format('YYYY')
+        params.endMon = dayjs(endTime).format('MM')
+        params.endDay = dayjs(endTime).format('DD')
+        return params
+      }
+
       const _request = (_params) => {
-        const params = {
+        const params = handleParams({
           isMoreTime: true,
           page: 1,
           preType: '08-08',
@@ -97,7 +108,7 @@
           staType: 'countrySta',
           timeOption: 'ten',
           ..._params,
-        }
+        })
         fetch(apiInfo.url, {
           method: 'POST',
           headers: {
