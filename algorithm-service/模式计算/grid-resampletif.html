@@ -42,8 +42,14 @@
     <div class="map-wrap">
       <div id="map1"></div>
       <div id="map2"></div>
-      <div class="label">原数据</div>
-      <div class="label2">处理后数据</div>
+      <div class="label">
+        <p>原数据</p>
+        <p>分辨率: <span id="originalSize"></span></p>
+      </div>
+      <div class="label2">
+        <p>处理后数据</p>
+        <p>分辨率: <span id="processedSize"></span></p>
+      </div>
     </div>
 
     <script type="text/javascript" src="/libs/cme2d.js"></script>
@@ -118,9 +124,13 @@
           })
           .then((res) => {
             if (res.data.code == 200) {
-              let { originalPath, processedPath } = res.data.data
+              let { originalPath, processedPath, originalSize, processedSize } =
+                res.data.data
               tiffLayers = singKleLayer(mapObj, params.tifPath, tiffLayers)
               tiffLayers2 = singKleLayer(mapObj2, processedPath, tiffLayers2)
+              document.getElementById('originalSize').textContent = originalSize
+              document.getElementById('processedSize').textContent =
+                processedSize
             }
           })
       }
