@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>网格点平滑</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <style>
+      .map-wrap {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        position: relative;
+      }
+      #map1 {
+        width: 50vw;
+        height: 100vh;
+        float: left;
+      }
+      #map2 {
+        width: 50vw;
+        height: 100vh;
+        float: left;
+      }
+      .label,
+      .label2 {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        font-size: 16px;
+        padding: 6px 10px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      .label2 {
+        left: 50%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="map-wrap">
+      <div id="map1"></div>
+      <div id="map2"></div>
+      <div class="label">原数据</div>
+      <div class="label2">平滑后数据</div>
+    </div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script src="/libs/polyline.js"></script>
+    <script src="/libs/axios.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D
+      const { GeoJSON } = window.CME2D.format
+      const { Vector: VectorLayer } = window.CME2D.layer
+      const { Vector: VectorSource } = window.CME2D.source
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
+      const { blendLayers, style } = window.CMECore
+      const {
+        Point,
+        LineString,
+        Polygon,
+        Circle: GeomCircle,
+      } = window.CME2D.geom
+      var apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-sdkservice/cmes-sdk/grid/tifInterpolator',
+        args: {
+          tifPath: {
+            value:
+              'http://10.40.88.119:11000/cmes-doc-sdk/sdk/250422045240512654_CMA_TYM_FOR_ASI_APCP01_20250422000000_3_1_0_10-20-64-103.tif',
+            type: 'string',
+            required: true,
+            desc: 'tif文件路径',
+          },
+          scale: {
+            value: '2',
+            type: 'number',
+            required: true,
+            desc: '缩放系数',
+          },
+          interpolationMethod: {
+            value: '0',
+            type: 'number',
+            required: true,
+            desc: '插值方法 默认0-双三次插值',
+          },
+        },
+      }
+
+      let vectorSource, vectorSource2
+      function init(params) {
+        if (vectorSource) {
+          vectorSource.clear()
+        }
+        if (vectorSource2) {
+          vectorSource2.clear()
+        }
+
+        multiLayer(mapObj, apiInfo.args.tifPath.value)
+        axios
+          .get(apiInfo.url, {
+            params,
+          })
+          .then((res) => {
+            let { data, success } = res.data
+            if (success) {
+              multiLayer(mapObj2, data)
+            }
+          })
+      }
+
+      function multiLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getMultiConfig()
+        tiffLayers = new blendLayers(map, {
+          url: url,
+        })
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer)
+          })
+        })
+      }
+      function getMultiConfig() {
+        let params = {
+          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
+          layerName: 'multiCogtifLayer',
+          opacity: 1,
+          zIndex: 14,
+          colors: [
+            [0, [255, 255, 255, 0]],
+            [0.1, [218, 249, 211, 1]],
+            [2.5, [184, 244, 170, 1]],
+            [5, [115, 217, 110, 1]],
+            [10, [61, 186, 61, 1]],
+            [25, [97, 184, 255, 1]],
+            [50, [0, 0, 255, 1]],
+            [100, [250, 0, 250, 1]],
+            [250, [121, 5, 63, 1]],
+          ],
+        }
+
+        return params
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 5,
+            wrapX: false,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+
+      let mapObj = null,
+        mapObj2 = null
+      window.onload = function () {
+        const mapEl = document.querySelector('#map')
+        mapObj = initMap(document.querySelector('#map1'))
+        mapObj2 = initMap(document.querySelector('#map2'))
+        mapObj2.once('postrender', function () {
+          let params = {
+            tifPath: apiInfo.args.tifPath.value,
+            scale: apiInfo.args.scale.value,
+            interpolationMethod: apiInfo.args.interpolationMethod.value,
+          }
+          init(params)
+        })
+      }
+
+      function renderOldLayer(geojson) {
+        vectorSource2 = new VectorSource({
+          features: new GeoJSON().readFeatures(geojson),
+        })
+        const vectorLayer = new VectorLayer({
+          source: vectorSource2,
+          style: new Style({
+            stroke: new Stroke({
+              color: '#0000ff',
+              width: 2,
+            }),
+          }),
+        })
+        mapObj.addLayer(vectorLayer)
+      }
+      function renderLayer(geojson) {
+        vectorSource = new VectorSource({
+          features: new GeoJSON().readFeatures(geojson),
+        })
+        const vectorLayer = new VectorLayer({
+          source: vectorSource,
+          style: new Style({
+            stroke: new Stroke({
+              color: '#FFCB99',
+              width: 2,
+            }),
+          }),
+        })
+        mapObj2.addLayer(vectorLayer)
+      }
+      function onRun(params) {
+        init(params)
+      }
+    </script>
+    <script src="/libs/message.js"></script>
+  </body>
+</html>
