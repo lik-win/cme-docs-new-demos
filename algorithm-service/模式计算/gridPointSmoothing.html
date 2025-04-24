@@ -12,16 +12,19 @@
         display: flex;
         position: relative;
       }
+
       #map1 {
         width: 50vw;
         height: 100vh;
         float: left;
       }
+
       #map2 {
         width: 50vw;
         height: 100vh;
         float: left;
       }
+
       .label,
       .label2 {
         position: fixed;
@@ -32,6 +35,7 @@
         background-color: #fff;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
+
       .label2 {
         left: 50%;
       }
@@ -47,16 +51,15 @@
     </div>
 
     <script type="text/javascript" src="/libs/cme2d.js"></script>
-    <script src="/libs/polyline.js"></script>
     <script src="/libs/axios.js"></script>
-    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd-1.1.1.cjs"></script>
     <script type="text/javascript">
-      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D
+      const { View, source, layer, Feature } = window.CME2D
       const { GeoJSON } = window.CME2D.format
       const { Vector: VectorLayer } = window.CME2D.layer
       const { Vector: VectorSource } = window.CME2D.source
       const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
-      const { blendLayers, style } = window.CMECore
+      const { CogTiffLayer, Map: CMEMap } = window.CMECore
       const {
         Point,
         LineString,
@@ -98,38 +101,29 @@
         }
 
         multiLayer(mapObj, apiInfo.args.tifPath.value)
-        axios
-          .get(apiInfo.url, {
-            params,
-          })
-          .then((res) => {
-            let { data, success } = res.data
-            if (success) {
-              multiLayer(mapObj2, data)
-            }
-          })
+        axios.get(apiInfo.url, { params }).then((res) => {
+          let { data, success } = res.data
+          if (success) {
+            multiLayer(mapObj2, data)
+          }
+          postResult(res.data)
+        })
       }
 
       function multiLayer(map, url) {
         // 获取凤羽图的配置参数
         const params = getMultiConfig()
-        tiffLayers = new blendLayers(map, {
-          url: url,
-        })
-        //绘制色斑图
-        tiffLayers._render(params).then((object) => {
-          tiffLayers.addCogeoLayer(params).then((layer) => {
-            map.addLayer(layer)
-          })
-        })
+        const cogLayer = new CogTiffLayer({ url, ...params })
+        map.addLayer(cogLayer)
       }
       function getMultiConfig() {
         let params = {
-          interpolation: 'linear', // 渐变 linear  区间 nearest  网格 grid
+          mode: 2,
           layerName: 'multiCogtifLayer',
           opacity: 1,
           zIndex: 14,
-          colors: [
+          minValue: 0.1,
+          colorRamp: [
             [0, [255, 255, 255, 0]],
             [0.1, [218, 249, 211, 1]],
             [2.5, [184, 244, 170, 1]],
