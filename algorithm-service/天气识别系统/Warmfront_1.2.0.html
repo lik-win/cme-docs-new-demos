@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>暖锋</title>
+    <link rel="stylesheet" href="/demo.css" />
+  </head>
+
+  <body>
+    <div id="map"></div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script src="/libs/polyline.js"></script>
+    <script src="/libs/axios.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd.cjs"></script>
+    <script type="text/javascript">
+      const { Map: CMEMap, View, source, layer, Feature } = window.CME2D;
+
+      let map, vectorS;
+      const { blendLayers, style, CMEStyle } = window.CMECore;
+      const { Point, LineString, Polygon, Circle: GeomCircle } = window.CME2D.geom;
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style;
+      const { Vector: VectorLayer } = window.CME2D.layer;
+      const { Vector: VectorSource } = window.CME2D.source;
+      let tiffLayers = null;
+      let micapsStyle = new CMEStyle.cme_polyline();
+      var apiInfo = {
+        url: "http://10.40.88.119:11000/cmes-base-sysidentify/sysIdentity/algorithm/getWarmFrontByDate",
+        args: {
+          dateStr: {
+            value: "2025-03-11 00:00:00",
+            type: "string",
+            required: true,
+            desc: "起报时间",
+          },
+          forecast: {
+            value: "12",
+            type: "string",
+            required: true,
+            desc: "预报时效",
+          },
+          level: {
+            value: "85000",
+            type: "string",
+            required: true,
+            desc: "高度层（pa）",
+          },
+          tiffPath: {
+            value: "http://10.40.88.119:11000/cmes-doc-sdk/sysidentify/demo/T_850_18010820.tif",
+            type: "string",
+            required: true,
+            desc: "tiff数据路径",
+          },
+          smooth: {
+            value: '5',
+            type: "string",
+            required: false,
+            desc: "平滑次数",
+          },
+          min_size: {
+            value: '300',
+            type: "string",
+            required: false,
+            desc: "半径",
+          },
+          resolution: {
+            value: 'low',
+            type: "string",
+            required: false,
+            desc: "分辨率",
+          }
+        },
+      };
+      function handleQueryString(params) {
+        let str = "";
+        for (let key in params) {
+          str += `${key}=${params[key]}&`;
+        }
+        return str.slice(0, -1);
+      }
+      function init(params) {
+        axios.get(apiInfo.url + `?${handleQueryString(params)}`).then((res) => {
+          if (window.postResult) {
+            window.postResult(res.data);
+          }
+          if (tiffLayers?.gridLayer) {
+            mapObj.removeLayer(tiffLayers?.gridLayer);
+            vectorS.clear();
+          }
+          let {
+            data: { element, tifPath, sysGeojson },
+            success,
+          } = res.data;
+          if (success) {
+            if (element == "TMP" || element == "T") {
+              let urlNum = String(tifPath.slice(7, 19)).replace(/\./g, "");
+              let url = "http://10.1.64.146/bm_cogtif/cmes-" + urlNum + tifPath.slice(19);
+              singleLayer(mapObj, tifPath);
+              if (sysGeojson) {
+                sysGeojson = JSON.parse(sysGeojson);
+                let features = sysGeojson?.features;
+                features &&
+                  features?.map((item) => {
+                    let type = item.geometry.type;
+                    if (type == "LineString") {
+                      const feature = new Feature({
+                        geometry: new LineString(item.geometry.coordinates),
+                      });
+                      feature.setStyle(micapsStyle.getCme_LINES_19(polylineStyleJson.LINES_20));
+                      vectorS.addFeature(feature);
+                    }
+                  });
+              }
+            }
+          }
+        });
+      }
+      function initMap(mapEl) {
+        vectorS = new VectorSource({
+          wrapX: true,
+        });
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: "http://10.0.54.106:8080/windy/{z}/{x}/{y}.png", // 内网地址
+              }),
+            }),
+            new VectorLayer({
+              source: vectorS,
+              zIndex: 100,
+              name: "Point",
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: "EPSG:4326",
+            zoom: 5,
+            wrapX: true,
+          }), //地图设置
+          controls: [], //取消地图操作
+        });
+        return map;
+      }
+
+      let mapObj = null;
+      window.onload = function () {
+        const mapEl = document.querySelector("#map");
+        mapObj = initMap(mapEl);
+        mapObj.once("postrender", function () {
+          let params = {
+            dateStr: apiInfo.args.dateStr.value,
+            forecast: apiInfo.args.forecast.value,
+            level: apiInfo.args.level.value,
+            tiffPath: apiInfo.args.tiffPath.value,
+            smooth: apiInfo.args.smooth.value,
+            min_size: apiInfo.args.min_size.value,
+            resolution: apiInfo.args.resolution.value,
+          };
+          init(params);
+        });
+      };
+      function singleLayer(map, url) {
+        // let url =  "/data/tif/T_850_18010820.tif";
+        // 获取色斑图配置信息
+        const params = getsingleConfig();
+        // 获取文本配置参数
+        const paramstext = getTextCogtig();
+        // 获取箭头配置参数
+        tiffLayers = new blendLayers(map, {
+          url: url,
+          metadata: {
+            unit: "C", //单位 科尔文类型的tif转换温度
+          },
+        });
+        //绘制色斑图
+        tiffLayers._render(params).then((object) => {
+          tiffLayers.addCogeoLayer(params).then((layer) => {
+            map.addLayer(layer);
+          });
+
+          // // //绘制网格值
+          // tiffLayers.addTextLayer(paramstext).then((layer) => {
+          //   map.addLayer(layer)
+          // })
+        });
+      }
+
+      function getsingleConfig() {
+        let params = {
+          layerName: "cogtifLayer", //必须有，而且必须是唯一值
+          opacity: 0.8,
+          interpolation: "nearest", // 渐变 linear  区间 nearest  网格 grid
+          colors: [
+            [-36, [128, 0, 124]],
+            [-32, [0, 47, 134]],
+            [-28, [26, 92, 166]],
+            [-24, [32, 117, 210]],
+            [-20, [60, 160, 240]],
+            [-16, [117, 207, 255]],
+            [-12, [151, 255, 244]],
+            [-8, [189, 249, 255]],
+            [-4, [242, 255, 255]],
+            [0, [223, 255, 217]],
+            [4, [196, 255, 183]],
+            [8, [186, 254, 131]],
+            [12, [252, 254, 156]],
+            [16, [255, 243, 196]],
+            [20, [255, 220, 168]],
+            [24, [255, 175, 117]],
+            [28, [253, 135, 132]],
+            [32, [236, 91, 95]],
+            [35, [255, 51, 51]],
+            [37, [201, 1, 1]],
+            [40, [153, 51, 1]],
+            [100, [71, 14, 0]],
+          ],
+        };
+        return params;
+      }
+
+      function getTextCogtig() {
+        let params = {
+          layerName: "textLayer", //必须有，而且必须是唯一值
+          opacity: 1, //透明度
+          zIndex: 100, //层级
+          textStyle: {
+            //   //文本样式
+            Style: {
+              text: {
+                Text: {
+                  font: "18px Calibri,sans-serif",
+                  fill: {
+                    Fill: {
+                      color: "#ff0000",
+                    },
+                  },
+                  stroke: {
+                    Stroke: {
+                      color: "#ffffff",
+                      width: 4,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        };
+
+        return params;
+      }
+      function onRun(params) {
+        init(params);
+      }
+    </script>
+    <script src="/libs/message.js"></script>
+  </body>
+</html>
