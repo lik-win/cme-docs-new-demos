@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>站点cressman插值(python)</title>
+    <link rel="stylesheet" href="/demo.css" />
+    <style>
+      .map-wrap {
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        position: relative;
+      }
+      /* 添加loading样式 */
+      .loading {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.7);
+        display: flex;
+        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+        z-index: 9999;
+      }
+      .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      #map1 {
+        width: 50vw;
+        height: 100vh;
+        float: left;
+      }
+      #map2 {
+        width: 50vw;
+        height: 100vh;
+        float: left;
+      }
+      .label,
+      .label2 {
+        position: fixed;
+        left: 10px;
+        top: 10px;
+        font-size: 16px;
+        padding: 6px 10px;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+      .label2 {
+        left: calc(50% + 10px);
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="map-wrap">
+      <!-- 添加loading div -->
+      <div class="loading" id="loading">
+        <div class="loading-spinner"></div>
+        数据处理中，请稍候...
+      </div>
+      <div id="map1"></div>
+      <div id="map2"></div>
+      <div class="label">
+        <p>原数据</p>
+      </div>
+      <div class="label2">
+        <p>处理后数据</p>
+      </div>
+    </div>
+
+    <script type="text/javascript" src="/libs/cme2d.js"></script>
+    <script src="/libs/polyline.js"></script>
+    <script src="/libs/axios.js"></script>
+    <script type="text/javascript" src="/libs/cme-core.umd-1.1.1.cjs"></script>
+    <script type="text/javascript">
+      const host = location.host || location.ancestorOrigins[0]
+      const { View, source, layer, Feature } = window.CME2D
+      const { Circle, Fill, Stroke, Style, Text, Icon } = window.CME2D.style
+      const { Point } = window.CME2D.geom
+      const { GeoJSON } = window.CME2D.format
+      const { Vector: VectorLayer } = window.CME2D.layer
+      const { Vector: VectorSource } = window.CME2D.source
+      const { blendLayers, style } = window.CMECore
+      const { CogTiffLayer, Map: CMEMap } = window.CMECore
+      var apiInfo = {
+        url: 'http://10.40.88.119:11000/cmes-base-pointinterpolat/point/manage/station/cressman/interpolation/py',
+        args: {
+          dataUrl: {
+            value: 'http://10.40.88.119:18097/qgis/countrySta.csv',
+            type: 'string',
+            required: true,
+            desc: 'csv网络文件',
+          },
+          rads: {
+            value: [50, 25, 10, 5, 1],
+            type: 'array',
+            required: true,
+            desc: '插值的影响半径序列，由大到小排列，单位为km',
+          },
+          gridResolution: {
+            value: 0.3,
+            type: 'number',
+            required: true,
+            desc: '格点分辨率',
+          },
+          nearNum: {
+            value: 100,
+            type: 'number',
+            required: true,
+            desc: '插值时所用的最大临近点个数',
+          },
+        },
+      }
+
+      let mapObj = null,
+        mapObj2 = null
+
+      const legendColor = [
+        [0, [255, 255, 255, 0]],
+        [0.1, [218, 249, 211, 1]],
+        [2.5, [184, 244, 170, 1]],
+        [5, [115, 217, 110, 1]],
+        [10, [61, 186, 61, 1]],
+        [25, [97, 184, 255, 1]],
+        [50, [0, 0, 255, 1]],
+        [100, [250, 0, 250, 1]],
+        [250, [121, 5, 63, 1]],
+      ]
+
+      // 解析 CSV 数据
+      function parseCSV(csv) {
+        const lines = csv.split('\n').map((line) => line.replaceAll('\r', ''))
+        const headers = lines[0].split(',')
+        const features = []
+        const stationIdKeyIndex = headers.indexOf('stationId')
+        const lonKeyIndex = headers.indexOf('lon')
+        const latKeyIndex = headers.indexOf('lat')
+        const heightKeyIndex = headers.indexOf('height')
+        const valueKeyIndex = headers.indexOf('value')
+
+        // "stationId,lon,lat,height,value"
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(',')
+          const longitude = parseFloat(values[lonKeyIndex])
+          const latitude = parseFloat(values[latKeyIndex])
+          const stationId = values[stationIdKeyIndex]
+          const height = values[heightKeyIndex]
+          const value = values[valueKeyIndex]
+
+          // 创建 GeoJSON 特征
+          features.push({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [longitude, latitude],
+            },
+            properties: {
+              stationId,
+              height,
+              value,
+            },
+          })
+        }
+        return { type: 'FeatureCollection', features }
+      }
+
+      let tiffLayers
+      // 将geojson渲染在地图上
+      let vectorSource
+      function renderGeoJson(geoJson) {
+        vectorSource = new VectorSource({
+          features: new GeoJSON().readFeatures(geoJson),
+        })
+        const vectorLayer = new VectorLayer({
+          source: vectorSource,
+          zIndex: 20,
+          style: (feature) => {
+            const value = feature.get('value')
+            let color
+            // 根据legendColor渲染颜色
+            for (let i = 0; i < legendColor.length; i++) {
+              const [threshold, colorArr] = legendColor[i]
+              if (value <= threshold) {
+                color = colorArr
+                break
+              }
+            }
+            return new Style({
+              image: new Circle({
+                radius: 3,
+                fill: new Fill({
+                  color,
+                }),
+              }),
+            })
+          },
+        })
+        mapObj.addLayer(vectorLayer)
+      }
+
+      // 渲染tiff数据
+      function multiLayer(map, url) {
+        // 获取凤羽图的配置参数
+        const params = getMultiConfig()
+        const cogLayer = new CogTiffLayer({ url, ...params })
+        map.addLayer(cogLayer)
+        return cogLayer
+      }
+      function getMultiConfig() {
+        let params = {
+          mode: 2,
+          layerName: 'multiCogtifLayer',
+          opacity: 1,
+          zIndex: 14,
+          minValue: 0.1,
+          colorRamp: legendColor,
+        }
+
+        return params
+      }
+
+      function initMap(mapEl) {
+        const map = new CMEMap({
+          target: mapEl, //挂载实例
+          layers: [
+            new layer.Tile({
+              zIndex: 999,
+              source: new source.XYZ({
+                url: 'http://10.0.54.106:8080/windy/{z}/{x}/{y}.png', // 内网地址
+              }),
+            }),
+          ],
+          view: new View({
+            //地图视图
+            center: [106, 35],
+            projection: 'EPSG:4326',
+            zoom: 3.5,
+            wrapX: false,
+          }), //地图设置
+          controls: [], //取消地图操作
+        })
+        return map
+      }
+      window.onload = function () {
+        mapObj = initMap(document.querySelector('#map1'))
+        mapObj2 = initMap(document.querySelector('#map2'))
+        mapObj.once('postrender', function () {
+          mapObj2.once('postrender', function () {
+            let params = {
+              dataUrl: apiInfo.args.dataUrl.value,
+              rads: apiInfo.args.rads.value,
+              gridResolution: apiInfo.args.gridResolution.value,
+              nearNum: apiInfo.args.nearNum.value,
+            }
+            onRun(params)
+          })
+        })
+      }
+      function onRun(params) {
+        init(params)
+      }
+      function showLoading() {
+        document.getElementById('loading').style.display = 'flex'
+      }
+
+      function hideLoading() {
+        document.getElementById('loading').style.display = 'none'
+      }
+
+      function init(params) {
+        showLoading()
+        if (vectorSource) {
+          vectorSource.clear()
+        }
+        if (tiffLayers) {
+          mapObj2.removeLayer(tiffLayers)
+        }
+        // 原数据渲染格点数据
+        axios.get(params.dataUrl).then((res) => {
+          if (res.status === 200) {
+            let data = res.data
+            // 将csv数据转换成geojson
+            let geoJson = parseCSV(data)
+            renderGeoJson(geoJson)
+          }
+        })
+        // 处理后数据渲染tif
+        axios
+          .post(apiInfo.url, params)
+          .then((res) => {
+            if (res.data.code === 200 && res.data.data) {
+              let data = res.data.data
+              tiffLayers = multiLayer(mapObj2, data)
+              postResult(res.data)
+            }
+          })
+          .finally(() => {
+            hideLoading()
+          })
+      }
+    </script>
+    <script src="/libs/message.js"></script>
+  </body>
+</html>
